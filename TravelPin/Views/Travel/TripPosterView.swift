@@ -34,17 +34,17 @@ struct TripPosterView: View {
                 VStack {
                     Text("\(travel.itineraries.count)")
                         .font(.title2).bold()
-                    Text("Days").font(.caption).foregroundStyle(.secondary)
+                    Text(locKey: "poster.stat.days").font(.caption).foregroundStyle(.secondary)
                 }
                 VStack {
                     Text("\(travel.spots.count)")
                         .font(.title2).bold()
-                    Text("Spots").font(.caption).foregroundStyle(.secondary)
+                    Text(locKey: "poster.stat.spots").font(.caption).foregroundStyle(.secondary)
                 }
                 VStack {
-                    Text("\(travel.type)")
+                    Text("\(travel.type.displayName)")
                         .font(.title2).bold()
-                    Text("Mood").font(.caption).foregroundStyle(.secondary)
+                    Text(locKey: "poster.stat.mood").font(.caption).foregroundStyle(.secondary)
                 }
             }
             .padding(.vertical, 30)
@@ -52,7 +52,7 @@ struct TripPosterView: View {
             // Highlights Grid
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    Text("The Highlights")
+                    Text(locKey: "poster.highlights")
                         .font(TPDesign.titleFont(22))
                     
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 15) {
@@ -91,7 +91,7 @@ struct TripPosterView: View {
                 Image(systemName: "pencil.and.outline")
                 Text("TravelPin").bold()
                 Spacer()
-                Text("Your travel architecture, preserved.")
+                Text(locKey: "poster.footer")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
@@ -99,12 +99,12 @@ struct TripPosterView: View {
             .background(Color.tpSurface)
         }
         .background(.white)
-        .navigationTitle("旅行海报")
+        .navigationTitle("poster.title".localized)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button(action: { showExportSheet.toggle() }) {
-                    Label("导出", systemImage: "square.and.arrow.up")
+                    Label("common.done".localized, systemImage: "square.and.arrow.up")
                 }
             }
         }

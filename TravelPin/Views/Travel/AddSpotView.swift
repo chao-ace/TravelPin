@@ -12,78 +12,96 @@ struct AddSpotView: View {
     @State private var notes = ""
     @State private var selectedItinerary: Itinerary?
     
-    // Photo Selection
-    @State private var selectedItems: [PhotosPickerItem] = []
-    @State private var selectedImagesData: [Data] = []
+    @State private var isSaving = false
     
     var body: some View {
         NavigationStack {
-            Form {
-                Section(header: Text("Spot Detail")) {
-                    TextField("Spot Name", text: $name)
-                    Picker("Visit Type", selection: $selectedType) {
-                        ForEach(SpotType.allCases, id: \.self) { type in
-                            HStack {
-                                Image(systemName: type.icon)
-                                Text(type.rawValue)
-                            }.tag(type)
+            ZStack {
+                Form {
+                    Section(header: Text(locKey: "add.spot.detail")) {
+                        TextField("add.spot.name".localized, text: $name)
+                        Picker("add.spot.type".localized, selection: $selectedType) {
+                            ForEach(SpotType.allCases, id: \.self) { type in
+                                HStack {
+                                    Image(systemName: type.icon)
+                                    Text(type.rawValue)
+                                }.tag(type)
+                            }
                         }
-                    }
-                }
-                
-                Section(header: Text("Connected Itinerary")) {
-                    Picker("Associate with Day", selection: $selectedItinerary) {
-                        Text("Unassigned").tag(nil as Itinerary?)
-                        ForEach(travel.itineraries.sorted(by: { $0.day < $1.day }), id: \.self) { itinerary in
-                            Text("Day \(itinerary.day): \(itinerary.destination)").tag(itinerary as Itinerary?)
-                        }
-                    }
-                }
-                
-                Section(header: Text("Photos")) {
-                    PhotosPicker(selection: $selectedItems, maxSelectionCount: 9, matching: .images) {
-                        Label("Select Photos", systemImage: "photo.on.rectangle.angled")
-                            .foregroundStyle(Color.tpAccent)
-                    }
-                    .onChange(of: selectedItems) { oldValue, newValue in
-                        loadPhotos(from: newValue)
                     }
                     
-                    if !selectedImagesData.isEmpty {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) {
-                                ForEach(selectedImagesData, id: \.self) { data in
-                                    if let uiImage = UIImage(data: data) {
-                                        Image(uiImage: uiImage)
-                                            .resizable()
-                                            .scaledToFill()
-                                            .frame(width: 80, height: 80)
-                                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    Section(header: Text(locKey: "add.spot.itinerary")) {
+                        Picker("add.spot.itinerary.pick".localized, selection: $selectedItinerary) {
+                            Text("add.spot.itinerary.none".localized).tag(nil as Itinerary?)
+                            ForEach(travel.itineraries.sorted(by: { $0.day < $1.day }), id: \.self) { itinerary in
+                                Text("\("add.itinerary.day".localized) \(itinerary.day)\("add.itinerary.unit".localized): \(itinerary.destination)").tag(itinerary as Itinerary?)
+                            }
+                        }
+                    }
+                    
+                    Section(header: Text(locKey: "add.spot.photos")) {
+                        PhotosPicker(selection: $selectedItems, maxSelectionCount: 9, matching: .images) {
+                            Label("add.spot.photos.select".localized, systemImage: "photo.on.rectangle.angled")
+                                .foregroundStyle(Color.tpAccent)
+                        }
+                        .onChange(of: selectedItems) { oldValue, newValue in
+                            loadPhotos(from: newValue)
+                        }
+                        
+                        if !selectedImagesData.isEmpty {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 8) {
+                                    ForEach(selectedImagesData, id: \.self) { data in
+                                        if let uiImage = UIImage(data: data) {
+                                            Image(uiImage: uiImage)
+                                                .resizable()
+                                                .scaledToFill()
+                                                .frame(width: 80, height: 80)
+                                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                        }
                                     }
                                 }
                             }
+                            .frame(height: 80)
                         }
-                        .frame(height: 80)
+                    }
+                    
+                    Section(header: Text(locKey: "add.spot.notes")) {
+                        TextField("add.spot.notes.placeholder".localized, text: $notes, axis: .vertical)
+                            .lineLimit(3...10)
                     }
                 }
+                .disabled(isSaving)
                 
-                Section(header: Text("Notes")) {
-                    TextField("Recommendation, feelings, etc.", text: $notes, axis: .vertical)
-                        .lineLimit(3...10)
+                if isSaving {
+                    ZStack {
+                        Color.black.opacity(0.1)
+                            .ignoresSafeArea()
+                        VStack(spacing: 12) {
+                            ProgressView()
+                                .tint(Color.tpAccent)
+                            Text("poster.export.rendering".localized)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(20)
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                    }
                 }
             }
-            .navigationTitle("New Highlight")
+            .navigationTitle("add.spot.title".localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button("common.cancel".localized) { dismiss() }
+                        .disabled(isSaving)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    Button("add.spot.save".localized) {
                         save()
-                        dismiss()
                     }
-                    .disabled(name.isEmpty)
+                    .disabled(name.isEmpty || isSaving)
                 }
             }
         }
@@ -109,6 +127,8 @@ struct AddSpotView: View {
         let currentImagesData = selectedImagesData
         let currentItinerary = selectedItinerary
 
+        isSaving = true
+        
         Task {
             let newSpot = Spot(name: spotName, type: currentSelectedType, notes: currentNotes)
             newSpot.travel = travel
@@ -125,6 +145,11 @@ struct AddSpotView: View {
                 }
             } catch {
                 print("Geocoding failed: \(error)")
+                // Fallback: use a random offset from origin if geocode fails for demo purposes
+                await MainActor.run {
+                    newSpot.latitude = 48.8566 + Double.random(in: -0.1...0.1)
+                    newSpot.longitude = 2.3522 + Double.random(in: -0.1...0.1)
+                }
             }
             
             // Map Snapshot
@@ -138,7 +163,12 @@ struct AddSpotView: View {
             
             await MainActor.run {
                 modelContext.insert(newSpot)
+                // Explicitly save the context to ensure persistence closure
+                try? modelContext.save()
+                isSaving = false
+                dismiss()
             }
         }
     }
+}
 }

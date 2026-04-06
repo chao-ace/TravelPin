@@ -43,18 +43,16 @@ class AIAssistantService: ObservableObject {
 
         Task {
             do {
-                guard await provider.isAvailable else {
-                    error = .noAPIKey
-                    isGenerating = false
-                    return
+                var effectiveProvider = provider
+                
+                if await !effectiveProvider.isAvailable {
+                    effectiveProvider = LocalTemplateProvider()
                 }
 
-                let stream = try await provider.generate(prompt: prompt)
+                let stream = try await effectiveProvider.generate(prompt: prompt)
                 for try await token in stream {
                     self.generatedText += token
                 }
-            } catch let err as AIProviderError {
-                self.error = err
             } catch {
                 self.error = .networkError(error.localizedDescription)
             }
@@ -66,13 +64,13 @@ class AIAssistantService: ObservableObject {
 
     func generateJournalComplete(for travel: Travel, style: WritingStyle = .poetic) async throws -> String {
         let prompt = buildPrompt(for: travel, style: style)
-        let provider = registry.activeProvider
-
-        guard await provider.isAvailable else {
-            throw AIProviderError.noAPIKey
+        var effectiveProvider = provider
+        
+        if await !effectiveProvider.isAvailable {
+            effectiveProvider = LocalTemplateProvider()
         }
 
-        return try await provider.generateComplete(prompt: prompt)
+        return try await effectiveProvider.generateComplete(prompt: prompt)
     }
 
     // MARK: - Prompt Builder

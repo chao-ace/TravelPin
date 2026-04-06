@@ -32,30 +32,17 @@ struct DashboardView: View {
                     .padding()
                 }
             }
-            .navigationTitle("足迹")
+            .navigationTitle("dashboard.title".localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    NavigationLink(destination: FootprintReviewView()) {
-                        Image(systemName: "chart.bar.xaxis")
-                            .font(.title2)
-                            .foregroundStyle(.primary)
-                    }
-                }
-
                 ToolbarItem(placement: .topBarTrailing) {
-                    HStack(spacing: 16) {
-                        NavigationLink(destination: InspirationPlazaView()) {
-                            Image(systemName: "sparkles.rectangle.stack")
-                                .font(.title2)
-                                .foregroundStyle(.primary)
-                        }
-
-                        Button(action: { showingAddTravel.toggle() }) {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.title2)
-                                .foregroundStyle(Color.tpAccent)
-                        }
+                    Button(action: { showingAddTravel.toggle() }) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(Color.tpAccent)
+                            .padding(8)
+                            .background(Color.tpAccent.opacity(0.1))
+                            .clipShape(Circle())
                     }
                 }
             }
@@ -67,9 +54,9 @@ struct DashboardView: View {
 
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("下一次，去哪里？")
+            Text(locKey: "dashboard.header.title")
                 .font(TPDesign.titleFont(28))
-            Text("你的旅行档案馆")
+            Text(locKey: "dashboard.header.subtitle")
                 .font(TPDesign.bodyFont())
                 .foregroundStyle(.secondary)
         }
@@ -107,11 +94,11 @@ struct DashboardView: View {
             }
 
             VStack(spacing: 12) {
-                Text("每一次出发，都值得被记住")
+                Text(locKey: "dashboard.empty.title")
                     .font(TPDesign.cinematicTitle(24))
                     .multilineTextAlignment(.center)
 
-                Text("记录你的旅途故事，让风景变成永恒的叙事")
+                Text(locKey: "dashboard.empty.subtitle")
                     .font(TPDesign.bodyFont())
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -121,7 +108,7 @@ struct DashboardView: View {
             Button(action: { showingAddTravel = true }) {
                 HStack(spacing: 8) {
                     Image(systemName: "plus.circle.fill")
-                    Text("开始第一段旅程")
+                    Text(locKey: "dashboard.empty.button")
                         .fontWeight(.semibold)
                 }
                 .font(.body)
@@ -169,7 +156,7 @@ struct DashboardView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("最近旅行")
+                    Text(locKey: "dashboard.featured.badge")
                         .font(.caption)
                         .fontWeight(.bold)
                         .foregroundStyle(.white.opacity(0.8))
@@ -182,8 +169,8 @@ struct DashboardView: View {
 
                     HStack(spacing: 16) {
                         Label(travel.status.displayName, systemImage: "circle.fill")
-                        Label("\(travel.itineraries.count)天", systemImage: "calendar")
-                        Label("\(travel.spots.count)个景点", systemImage: "mappin")
+                        Label("\(travel.itineraries.count) \("common.days".localized)", systemImage: "calendar")
+                        Label("\(travel.spots.count) \("common.spots".localized)", systemImage: "mappin")
                     }
                     .font(.caption)
                     .foregroundStyle(.white.opacity(0.8))

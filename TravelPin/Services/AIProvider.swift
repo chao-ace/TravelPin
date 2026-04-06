@@ -35,12 +35,14 @@ enum AIProviderType: String, CaseIterable, Codable {
     case foundationModels = "foundation_models"
     case openAI = "openai"
     case anthropic = "anthropic"
+    case localTemplate = "local_template"
 
     var displayName: String {
         switch self {
         case .foundationModels: return "Apple 本地模型"
         case .openAI: return "OpenAI"
         case .anthropic: return "Anthropic"
+        case .localTemplate: return "系统默认智能模板"
         }
     }
 }
@@ -76,6 +78,8 @@ final class AIProviderRegistry: ObservableObject {
             return OpenAIProvider(apiKey: openAIKey)
         case .anthropic:
             return AnthropicProvider(apiKey: anthropicKey)
+        case .localTemplate:
+            return LocalTemplateProvider()
         }
     }
 }

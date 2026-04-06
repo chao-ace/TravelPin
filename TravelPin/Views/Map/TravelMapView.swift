@@ -43,7 +43,7 @@ struct TravelMapView: View {
         .safeAreaInset(edge: .bottom) {
             daySelector
         }
-        .navigationTitle("Footprint Map")
+        .navigationTitle("detail.menu.explore_map".localized)
         .navigationBarTitleDisplayMode(.inline)
     }
     
@@ -63,7 +63,7 @@ struct TravelMapView: View {
                     Button {
                         selectedDay = itinerary.day
                     } label: {
-                        Text("Day \(itinerary.day)")
+                        Text("\("add.itinerary.day".localized) \(itinerary.day)\("add.itinerary.unit".localized)")
                             .font(.caption).bold()
                             .padding(.horizontal, 16)
                             .padding(.vertical, 8)

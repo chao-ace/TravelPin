@@ -64,7 +64,7 @@ struct IntelligenceBanner: View {
                     } else {
                         Button {
                             // Find Inspiration
-                            intelligence.dismiss()
+                            intelligence.discoverSomethingNew()
                         } label: {
                             Text("Discover Something New")
                                 .font(.caption).bold()

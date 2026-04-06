@@ -71,11 +71,11 @@ class IntelligenceService: ObservableObject {
                 await MainActor.run {
                     self.activeRecommendation = IntelligenceRecommendation(
                         trigger: .fatigue(steps: steps),
-                        title: "注意休息",
-                        subtitle: "今天已经走了 \(steps) 步，要不要找个安静的咖啡馆坐一会儿？",
+                        title: "intel.fatigue.title".localized,
+                        subtitle: String(format: "intel.fatigue.subtitle".localized, steps),
                         actionType: .discoverRemote,
                         internalSpotID: nil,
-                        remoteSpotName: "安静咖啡馆"
+                        remoteSpotName: "intel.weather.rain.indoor".localized
                     )
                 }
                 return
@@ -95,13 +95,16 @@ class IntelligenceService: ObservableObject {
                         let indoorSpot = travel.spots.first(where: { $0.status == .planning && ($0.type == .food || $0.type == .shopping) })
 
                         await MainActor.run {
+                            let indoorName = indoorSpot?.name ?? "intel.weather.rain.indoor".localized
+                            let subtitle = String(format: "intel.weather.rain.subtitle".localized, nextOutdoorSpot.name, Int(temperature.value), indoorName)
+                            
                             self.activeRecommendation = IntelligenceRecommendation(
                                 trigger: .weather(condition: condition, spotName: nextOutdoorSpot.name),
-                                title: "下雨了",
-                                subtitle: "检测到 \(nextOutdoorSpot.name) 附近有雨（\(Int(temperature.value))°C）。要不要先去 \(indoorSpot?.name ?? "室内景点")？",
+                                title: "intel.weather.rain.title".localized,
+                                subtitle: subtitle,
                                 actionType: indoorSpot != nil ? .swapLocal : .discoverRemote,
                                 internalSpotID: indoorSpot?.id,
-                                remoteSpotName: indoorSpot == nil ? "室内活动" : nil
+                                remoteSpotName: indoorSpot == nil ? "intel.weather.rain.indoor".localized : nil
                             )
                         }
                     }
@@ -153,7 +156,20 @@ class IntelligenceService: ObservableObject {
     // MARK: - Actions
 
     func applySwap(in travel: Travel, targetSpotID: UUID) {
-        print("Swapping to Spot: \(targetSpotID)")
+        // Find the spot and move it to 'traveling' or 'travelled' to manifest the plan change
+        if let spot = travel.spots.first(where: { $0.id == targetSpotID }) {
+            spot.status = .traveling
+            spot.actualDate = Date()
+            
+            // If it's linked to an itinerary, mark it as high priority (logical concept)
+            spot.sequence = 0 
+        }
+        
+        self.activeRecommendation = nil
+    }
+
+    func discoverSomethingNew() {
+        AppState.shared.navigateToDiscover()
         self.activeRecommendation = nil
     }
 

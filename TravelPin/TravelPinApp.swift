@@ -19,9 +19,12 @@ struct TravelPinApp: App {
         }
     }()
 
+    @StateObject private var languageManager: LanguageManager = .shared
+
     var body: some Scene {
         WindowGroup {
-            DashboardView()
+            MainTabView()
+                .environmentObject(languageManager)
         }
         .modelContainer(sharedModelContainer)
     }

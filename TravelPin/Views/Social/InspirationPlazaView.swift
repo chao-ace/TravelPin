@@ -2,49 +2,76 @@ import SwiftUI
 import SwiftData
 
 struct InspirationPlazaView: View {
-    @State private var publicTrips: [Travel] = [] // Loaded from Supabase
+    @State private var publicTrips: [Travel] = MockDataCenter.getPublicTrips()
     @Environment(\.modelContext) private var modelContext
+    @State private var showingSuccessToast = false
     
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    headerSection
-                    
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 20) {
-                        ForEach(publicTrips) { trip in
-                            TripResonanceCard(travel: trip) {
-                                // Action: Clone/Remix
-                                remixTrip(trip)
+            ZStack {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 24) {
+                        headerSection
+                        
+                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 20) {
+                            ForEach(publicTrips) { trip in
+                                TripResonanceCard(travel: trip) {
+                                    remixTrip(trip)
+                                }
                             }
                         }
+                        .padding()
                     }
-                    .padding()
+                }
+                
+                if showingSuccessToast {
+                    VStack {
+                        HStack {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(.green)
+                            Text("common.done".localized)
+                                .font(.headline)
+                        }
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .clipShape(Capsule())
+                        .shadow(radius: 10)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                        .padding(.top, 50)
+                        Spacer()
+                    }
                 }
             }
-            .navigationTitle("Inspiration Plaza")
+            .navigationTitle("inspiration.title".localized)
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
     
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Find Your Next Horizon")
-                .font(TPDesign.titleFont(28))
-            Text("Discover and remix plans from global explorers.")
+            Text("inspiration.header".localized)
+                .font(TPDesign.titleFont(32))
+            Text("inspiration.subtitle".localized)
                 .font(TPDesign.bodyFont())
                 .foregroundStyle(.secondary)
         }
         .padding(.horizontal)
+        .padding(.top, 20)
     }
-    
+
     private func remixTrip(_ original: Travel) {
-        // Clone logic: Map original to new Travel object and save to SwiftData
-        let copy = Travel(name: "\(original.name) (Remix)", type: original.type)
-        copy.status = .wishing
-        // Map itineraries and spots...
-        
+        let copy = MockDataCenter.deepClone(travel: original)
         modelContext.insert(copy)
-        // Show success alert
+        
+        withAnimation(.spring()) {
+            showingSuccessToast = true
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            withAnimation {
+                showingSuccessToast = false
+            }
+        }
     }
 }
 
@@ -67,14 +94,14 @@ struct TripResonanceCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(travel.name)
                     .font(.headline)
-                Text("\(travel.itineraries.count) Days · \(travel.spots.count) Spots")
+                Text("\(travel.itineraries.count) \("common.days".localized) · \(travel.spots.count) \("common.spots".localized)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
             .padding(.top, 8)
             
             Button(action: onRemix) {
-                Label("Remix", systemImage: "arrow.triangle.2.circlepath")
+                Label("discover.card.remix".localized, systemImage: "arrow.triangle.2.circlepath")
                     .font(.caption).bold()
                     .padding(.vertical, 6)
                     .frame(maxWidth: .infinity)

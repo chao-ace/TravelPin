@@ -53,13 +53,7 @@ enum TravelStatus: String, CaseIterable, Codable {
     case cancelled = "Cancelled"
 
     var displayName: String {
-        switch self {
-        case .wishing: return "愿望清单"
-        case .planning: return "计划中"
-        case .traveling: return "出行中"
-        case .travelled: return "已出行"
-        case .cancelled: return "已取消"
-        }
+        return "status.\(self.rawValue.lowercased())".localized
     }
 
     var colorName: String {
@@ -81,13 +75,7 @@ enum TravelType: String, CaseIterable, Codable {
     case other = "Other"
 
     var displayName: String {
-        switch self {
-        case .tourism: return "出游"
-        case .concert: return "演唱会"
-        case .chill: return "散心"
-        case .business: return "出差"
-        case .other: return "其他"
-        }
+        return "type.\(self.rawValue.lowercased())".localized
     }
 
     var icon: String {

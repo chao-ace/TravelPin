@@ -10,12 +10,12 @@ struct LuggageView: View {
     
     var body: some View {
         List {
-            Section(header: Text("Add to Matrix")) {
+            Section(header: Text(locKey: "luggage.add.header")) {
                 HStack {
-                    TextField("New item...", text: $newItemName)
+                    TextField("luggage.add.placeholder".localized, text: $newItemName)
                         .font(TPDesign.bodyFont())
                     
-                    Picker("Cat", selection: $selectedCategory) {
+                    Picker("luggage.add.category".localized, selection: $selectedCategory) {
                         ForEach(LuggageCategory.allCases, id: \.self) { cat in
                             Image(systemName: cat.icon).tag(cat)
                         }
@@ -56,7 +56,7 @@ struct LuggageView: View {
                 }
             }
         }
-        .navigationTitle("Packing Matrix")
+        .navigationTitle("luggage.title".localized)
         .navigationBarTitleDisplayMode(.inline)
     }
     

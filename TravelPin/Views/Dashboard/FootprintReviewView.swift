@@ -18,15 +18,15 @@ struct FootprintReviewView: View {
             }
             .padding()
         }
-        .navigationTitle("Footprint Review")
+        .navigationTitle("footprint.title".localized)
         .navigationBarTitleDisplayMode(.inline)
     }
     
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 5) {
-            Text("Your Journey Insights")
+            Text(locKey: "footprint.header.title")
                 .font(TPDesign.titleFont(28))
-            Text("A summary of your travel architecture.")
+            Text(locKey: "footprint.header.subtitle")
                 .font(TPDesign.bodyFont())
                 .foregroundStyle(.secondary)
         }
@@ -34,16 +34,16 @@ struct FootprintReviewView: View {
     
     private var statsGrid: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
-            StatCard(title: "Journeys", value: "\(travels.count)", icon: "map.fill")
-            StatCard(title: "Spots", value: "\(spots.count)", icon: "mappin.and.ellipse")
-            StatCard(title: "Photos", value: "\(spots.reduce(0) { $0 + $1.photoData.count })", icon: "photo.stack")
-            StatCard(title: "Planning", value: "\(travels.filter { $0.status == .planning }.count)", icon: "pencil.and.outline")
+            StatCard(title: "footprint.stat.journeys".localized, value: "\(travels.count)", icon: "map.fill")
+            StatCard(title: "footprint.stat.spots".localized, value: "\(spots.count)", icon: "mappin.and.ellipse")
+            StatCard(title: "footprint.stat.photos".localized, value: "\(spots.reduce(0) { $0 + $1.photoData.count })", icon: "photo.stack")
+            StatCard(title: "footprint.stat.planning".localized, value: "\(travels.filter { $0.status == .planning }.count)", icon: "pencil.and.outline")
         }
     }
     
     private var typeDistributionSection: some View {
         VStack(alignment: .leading, spacing: 15) {
-            Text("Travel Distribution")
+            Text(locKey: "footprint.section.distribution")
                 .font(TPDesign.titleFont(20))
             
             VStack(spacing: 12) {
@@ -51,7 +51,7 @@ struct FootprintReviewView: View {
                     let count = travels.filter { $0.type == type }.count
                     if count > 0 {
                         HStack {
-                            Label(type.rawValue, systemImage: type.icon)
+                            Label(type.displayName, systemImage: type.icon)
                                 .font(TPDesign.bodyFont())
                             Spacer()
                             Text("\(count)")
@@ -67,7 +67,7 @@ struct FootprintReviewView: View {
     
     private var recentActivitySection: some View {
         VStack(alignment: .leading, spacing: 15) {
-            Text("Recent Milestones")
+            Text(locKey: "footprints.section.recent")
                 .font(TPDesign.titleFont(20))
             
             ForEach(travels.prefix(3)) { travel in

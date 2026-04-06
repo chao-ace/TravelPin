@@ -13,18 +13,18 @@ struct AddItineraryView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Stepper("Day \(day)", value: $day, in: 1...31)
-                TextField("Origin City", text: $origin)
-                TextField("Destination City", text: $destination)
+                Stepper("\("add.itinerary.day".localized) \(day)\("add.itinerary.unit".localized)", value: $day, in: 1...31)
+                TextField("add.itinerary.origin".localized, text: $origin)
+                TextField("add.itinerary.destination".localized, text: $destination)
             }
-            .navigationTitle("Add Daily Plan")
+            .navigationTitle("add.itinerary.title".localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button("common.cancel".localized) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Add") {
+                    Button("add.itinerary.add".localized) {
                         save()
                         dismiss()
                     }

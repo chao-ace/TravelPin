@@ -23,26 +23,7 @@ struct TravelDetailView: View {
                         .padding(.top, 10)
                         .background(Color.tpSurface.opacity(0.1))
 
-                    // Top Action Bar & Collaborators
-                    HStack {
-                        collaboratorBar
-                        Spacer()
-                        
-                        if intelligence.activeRecommendation != nil {
-                            // Intelligence Pulse Indicator (Magic Wand)
-                            ZStack {
-                                Circle().fill(Color.tpAccent.opacity(0.2)).frame(width: 44, height: 44)
-                                    .scaleEffect(1.2)
-                                    .blur(radius: 4)
-                                Image(systemName: "wand.and.stars.inverse")
-                                    .foregroundStyle(Color.tpAccent)
-                            }
-                            .transition(.scale)
-                        }
-                        
-                        menuButton
-                    }
-                    .padding(.horizontal)
+
 
                     // Header with Parallax IMAX Title
                     GeometryReader { geo in
@@ -91,22 +72,20 @@ struct TravelDetailView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    Button(action: { showingAddItinerary.toggle() }) {
-                        Label("Add Itinerary", systemImage: "calendar.badge.plus")
+            ToolbarItem(placement: .topBarLeading) {
+                HStack(spacing: 12) {
+                    collaboratorBar
+                    
+                    if intelligence.activeRecommendation != nil {
+                        Image(systemName: "wand.and.stars.inverse")
+                            .foregroundStyle(Color.tpAccent)
+                            .symbolEffect(.pulse)
                     }
-                    Button(action: { showingAddSpot.toggle() }) {
-                        Label("Add Spot", systemImage: "mappin.and.ellipse")
-                    }
-                    NavigationLink(destination: TravelMapView(travel: travel)) {
-                        Label("Explore Map", systemImage: "map")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .font(.title2)
-                        .foregroundStyle(Color.tpAccent)
                 }
+            }
+            
+            ToolbarItem(placement: .topBarTrailing) {
+                menuButton
             }
         }
     }
@@ -135,20 +114,20 @@ struct TravelDetailView: View {
     private var menuButton: some View {
         Menu {
             Button(action: { showingAddItinerary.toggle() }) {
-                Label("Add Day", systemImage: "calendar.badge.plus")
+                Label("detail.menu.add_day".localized, systemImage: "calendar.badge.plus")
             }
             Button(action: { showingAddSpot.toggle() }) {
-                Label("Add Spot", systemImage: "mappin.and.ellipse")
+                Label("detail.menu.add_spot".localized, systemImage: "mappin.and.ellipse")
             }
             Divider()
             NavigationLink(destination: TravelMapView(travel: travel)) {
-                Label("Explore Map", systemImage: "map")
+                Label("detail.menu.explore_map".localized, systemImage: "map")
             }
             Button(action: { showingAIReview.toggle() }) {
-                Label("AI Review", systemImage: "wand.and.stars")
+                Label("detail.menu.ai_review".localized, systemImage: "wand.and.stars")
             }
             NavigationLink(destination: TripPosterView(travel: travel)) {
-                Label("Trip Poster", systemImage: "doc.richtext")
+                Label("detail.menu.trip_poster".localized, systemImage: "doc.richtext")
             }
         } label: {
             Image(systemName: "ellipsis.circle")
@@ -159,12 +138,12 @@ struct TravelDetailView: View {
 
     private var itinerarySection: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text("The Itinerary")
+            Text(locKey: "detail.itinerary.title")
                 .font(TPDesign.titleFont(24))
                 .padding(.horizontal)
 
             if travel.itineraries.isEmpty {
-                Text("No daily plans yet.")
+                Text(locKey: "detail.itinerary.empty")
                     .foregroundStyle(.secondary)
                     .padding(.horizontal)
             } else {
@@ -177,7 +156,7 @@ struct TravelDetailView: View {
 
     private var spotArchiveSection: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text("Highlights & Archive")
+            Text(locKey: "detail.archive.title")
                 .font(TPDesign.titleFont(24))
                 .padding(.horizontal)
 
@@ -200,9 +179,9 @@ struct TravelDetailView: View {
         NavigationLink(destination: LuggageView(travel: travel)) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Packing Matrix")
+                    Text(locKey: "detail.packing.title")
                         .font(TPDesign.titleFont(22))
-                    Text("\(travel.luggageItems.filter { $0.isChecked }.count)/\(travel.luggageItems.count) Prepared")
+                    Text("\(travel.luggageItems.filter { $0.isChecked }.count)/\(travel.luggageItems.count) \("detail.packing.prepared".localized)")
                         .font(TPDesign.bodyFont())
                         .foregroundStyle(.secondary)
                 }
@@ -318,48 +297,113 @@ struct ImmersiveSpotDetailView: View {
     var namespace: Namespace.ID
     let onClose: () -> Void
 
+    @State private var currentPhotoIndex: Int = 0
+
     var body: some View {
         ZStack(alignment: .topTrailing) {
             Color.black.ignoresSafeArea()
                 .opacity(0.9)
 
-            VStack {
-                // Immersive Header Image
-                Group {
-                    if let firstPhotoData = spot.photoData.first, let uiImage = UIImage(data: firstPhotoData) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                    } else if let snapshotData = spot.mapSnapshot, let uiImage = UIImage(data: snapshotData) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                    } else {
-                        Rectangle().fill(Color.tpAccent.opacity(0.1))
+            ScrollView {
+                VStack(spacing: 0) {
+                    // Hero Image with photo pagination
+                    TabView(selection: $currentPhotoIndex) {
+                        ForEach(Array(spot.photoData.enumerated()), id: \.offset) { index, data in
+                            if let uiImage = UIImage(data: data) {
+                                Image(uiImage: uiImage)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .tag(index)
+                            }
+                        }
                     }
+                    .matchedGeometryEffect(id: "image_\(spot.id)", in: namespace)
+                    .aspectRatio(TPDesign.anamorphicRatio, contentMode: .fill)
+                    .frame(maxWidth: .infinity)
+                    .tabViewStyle(.page)
+
+                    // Content
+                    VStack(alignment: .leading, spacing: 20) {
+                        // Title & Type
+                        Text(spot.name)
+                            .font(TPDesign.cinematicTitle(40))
+                            .foregroundStyle(.white)
+                            .matchedGeometryEffect(id: "title_\(spot.id)", in: namespace)
+
+                        HStack(spacing: 12) {
+                            Label(spot.type.displayName, systemImage: spot.type.icon)
+                                .font(.subheadline.bold())
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(Color.tpAccent.opacity(0.2))
+                                .foregroundStyle(Color.tpAccent)
+                                .clipShape(Capsule())
+
+                            if let rating = spot.rating {
+                                HStack(spacing: 2) {
+                                    ForEach(1...5, id: \.self) { star in
+                                        Image(systemName: star <= rating ? "star.fill" : "star")
+                                            .font(.caption)
+                                            .foregroundStyle(.yellow)
+                                    }
+                                }
+                            }
+
+                            if let cost = spot.cost {
+                                Label("¥\(Int(cost))", systemImage: "yensign.circle")
+                                    .font(.subheadline.bold())
+                                    .foregroundStyle(.orange)
+                            }
+                        }
+
+                        // Address
+                        if let address = spot.address, !address.isEmpty {
+                            Label(address, systemImage: "mappin.circle")
+                                .font(TPDesign.bodyFont(16))
+                                .foregroundStyle(.white.opacity(0.6))
+                        }
+
+                        // Notes
+                        if !spot.notes.isEmpty {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(locKey: "detail.atmosphere")
+                                    .font(TPDesign.titleFont(20))
+                                    .foregroundStyle(Color.tpAccent)
+
+                                Text(spot.notes)
+                                    .font(TPDesign.bodyFont(17))
+                                    .foregroundStyle(.white.opacity(0.8))
+                                    .lineSpacing(8)
+                            }
+                            .padding(.top, 8)
+                        }
+
+                        // Tags
+                        if !spot.tags.isEmpty {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 8) {
+                                    ForEach(spot.tags, id: \.self) { tag in
+                                        Text("#\(tag)")
+                                            .font(.caption.bold())
+                                            .padding(.horizontal, 10)
+                                            .padding(.vertical, 6)
+                                            .background(.white.opacity(0.1))
+                                            .foregroundStyle(.white.opacity(0.7))
+                                            .clipShape(Capsule())
+                                    }
+                                }
+                            }
+                        }
+
+                        // Visit Duration
+                        if let duration = spot.visitDuration {
+                            Label("\(duration) min", systemImage: "clock")
+                                .font(.caption)
+                                .foregroundStyle(.white.opacity(0.5))
+                        }
+                    }
+                    .padding(24)
                 }
-                .matchedGeometryEffect(id: "image_\(spot.id)", in: namespace)
-                .aspectRatio(TPDesign.anamorphicRatio, contentMode: .fill)
-                .frame(maxWidth: .infinity)
-                .clipShape(RoundedRectangle(cornerRadius: 0))
-
-                // Detailed Content (Fade in)
-                VStack(alignment: .leading, spacing: 24) {
-                    Text(spot.name)
-                        .font(TPDesign.cinematicTitle(48))
-                        .foregroundStyle(.white)
-                        .matchedGeometryEffect(id: "title_\(spot.id)", in: namespace)
-
-                    Text("The Atmosphere")
-                        .font(TPDesign.titleFont(24))
-                        .foregroundStyle(Color.tpAccent)
-
-                    Text(spot.type.displayName)
-                        .font(TPDesign.bodyFont(20))
-                        .foregroundStyle(.white.opacity(0.7))
-                }
-                .padding(32)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                Spacer()
             }
 
             // Close Button

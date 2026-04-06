@@ -17,11 +17,11 @@ struct AIGenerationView: View {
                     resultView
                 }
             }
-            .navigationTitle("AI Review Assistant")
+            .navigationTitle("ai.review.title".localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Close") { dismiss() }
+                    Button("common.close".localized) { dismiss() }
                 }
             }
         }
@@ -36,16 +36,16 @@ struct AIGenerationView: View {
                 .foregroundStyle(Color.tpAccent)
             
             VStack(spacing: 12) {
-                Text("Craft Your Narrative")
+                Text(locKey: "ai.review.header")
                     .font(TPDesign.titleFont(24))
-                Text("Choose a style and let AI weave your trip into a story.")
+                Text(locKey: "ai.review.subtitle")
                     .font(TPDesign.bodyFont())
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 40)
             }
             
-            Picker("Writing Style", selection: $selectedStyle) {
+            Picker("ai.review.style".localized, selection: $selectedStyle) {
                 ForEach(AIAssistantService.WritingStyle.allCases, id: \.self) { style in
                     Text(style.rawValue).tag(style)
                 }
@@ -57,7 +57,7 @@ struct AIGenerationView: View {
                 if isGenerating {
                     ProgressView()
                 } else {
-                    Text("Generate Journey Journal")
+                    Text(locKey: "ai.review.generate")
                         .font(.headline)
                         .foregroundStyle(.white)
                         .padding()
@@ -81,7 +81,7 @@ struct AIGenerationView: View {
                     .fill(Color.tpAccent.opacity(0.1))
                     .frame(height: 1)
                     .overlay(
-                        Text("M E M O I R")
+                        Text(locKey: "ai.review.memoir")
                             .font(.caption2).tracking(4)
                             .padding(.horizontal, 10)
                             .background(Color.white)
@@ -106,12 +106,12 @@ struct AIGenerationView: View {
                         let pasteboard = UIPasteboard.general
                         pasteboard.string = generatedText
                     }) {
-                        Label("Copy Memoir", systemImage: "doc.on.doc")
+                        Label("ai.review.copy".localized, systemImage: "doc.on.doc")
                     }
                     .buttonStyle(.bordered)
                     
                     ShareLink(item: generatedText) {
-                        Label("Share Journal", systemImage: "square.and.arrow.up")
+                        Label("ai.review.share".localized, systemImage: "square.and.arrow.up")
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(Color.tpAccent)

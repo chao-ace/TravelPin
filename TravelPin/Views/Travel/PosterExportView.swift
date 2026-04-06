@@ -3,10 +3,14 @@ import SwiftData
 
 // MARK: - Export Format
 
-enum PosterExportFormat: String, CaseIterable {
-    case xiaohongshu = "小红书 3:4"
-    case moments = "朋友圈 1:1"
-    case landscape = "通用 16:9"
+enum PosterExportFormat: String, CaseIterable, Identifiable {
+    case xiaohongshu = "poster.format.xiaohongshu"
+    case moments = "poster.format.moments"
+    case landscape = "poster.format.landscape"
+
+    var id: String { rawValue }
+
+    var displayName: String { rawValue.localized }
 
     var ratio: CGFloat {
         switch self {
@@ -87,8 +91,8 @@ struct XiaohongshuPoster: View {
                         .foregroundStyle(.white)
 
                     HStack(spacing: 16) {
-                        Label("\(travel.itineraries.count)天", systemImage: "calendar")
-                        Label("\(travel.spots.count)个景点", systemImage: "mappin.and.ellipse")
+                        Label("\(travel.itineraries.count)\("poster.stat.days".localized)", systemImage: "calendar")
+                        Label("\(travel.spots.count)\("poster.stat.spots".localized)", systemImage: "mappin.and.ellipse")
                         Text(travel.type.displayName)
                     }
                     .font(.system(size: 16, weight: .medium))
@@ -128,7 +132,7 @@ struct XiaohongshuPoster: View {
             HStack(spacing: 40) {
                 VStack(spacing: 4) {
                     Text(formatDate(travel.startDate))
-                    Text("出发")
+                    Text(locKey: "poster.date.start")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -138,7 +142,7 @@ struct XiaohongshuPoster: View {
 
                 VStack(spacing: 4) {
                     Text(formatDate(travel.endDate))
-                    Text("归来")
+                    Text(locKey: "poster.date.end")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -155,7 +159,7 @@ struct XiaohongshuPoster: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer()
-                Text("每一次出发，都值得被记住")
+                Text(locKey: "dashboard.empty.title")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
@@ -215,7 +219,7 @@ struct MomentsPoster: View {
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
 
-                Text("\(travel.itineraries.count)天 · \(travel.spots.count)个景点")
+                Text("\(travel.itineraries.count)\("poster.stat.days".localized) · \(travel.spots.count)\("poster.stat.spots".localized)")
                     .font(.system(size: 20, weight: .medium))
                     .foregroundStyle(.white.opacity(0.8))
 
@@ -269,9 +273,9 @@ struct PosterExportSheet: View {
         NavigationStack {
             VStack(spacing: 24) {
                 // Format Picker
-                Picker("导出格式", selection: $selectedFormat) {
+                Picker("poster.export.format".localized, selection: $selectedFormat) {
                     ForEach(PosterExportFormat.allCases, id: \.self) { format in
-                        Text(format.rawValue).tag(format)
+                        Text(format.displayName).tag(format)
                     }
                 }
                 .pickerStyle(.segmented)
@@ -291,7 +295,7 @@ struct PosterExportSheet: View {
                             .overlay(
                                 VStack(spacing: 12) {
                                     ProgressView()
-                                    Text("正在渲染...")
+                                    Text(locKey: "poster.export.rendering")
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
@@ -304,8 +308,10 @@ struct PosterExportSheet: View {
                 // Actions
                 HStack(spacing: 16) {
                     if let image = renderedImage {
-                        ShareLink(item: Image(uiImage: image), preview: SharePreview(travel.name)) {
-                            Label("分享", systemImage: "square.and.arrow.up")
+                        Button {
+                            shareImage(image)
+                        } label: {
+                            Label("poster.export.share".localized, systemImage: "square.and.arrow.up")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.borderedProminent)
@@ -314,7 +320,7 @@ struct PosterExportSheet: View {
                         Button {
                             UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
                         } label: {
-                            Label("保存", systemImage: "arrow.down.circle")
+                            Label("poster.export.save".localized, systemImage: "arrow.down.circle")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.bordered)
@@ -325,11 +331,11 @@ struct PosterExportSheet: View {
                 Spacer()
             }
             .padding(.top)
-            .navigationTitle("导出海报")
+            .navigationTitle("poster.export.title".localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("完成") { dismiss() }
+                    Button("common.done".localized) { dismiss() }
                 }
             }
             .task {
@@ -345,9 +351,19 @@ struct PosterExportSheet: View {
     private func renderPoster() async {
         isRendering = true
         renderedImage = nil
-        // Small delay for UI update
         try? await Task.sleep(for: .milliseconds(100))
         renderedImage = PosterRenderer.render(travel: travel, format: selectedFormat)
         isRendering = false
+    }
+
+    private func shareImage(_ image: UIImage) {
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootVC = windowScene.windows.first?.rootViewController else { return }
+        let activityVC = UIActivityViewController(activityItems: [image], applicationActivities: nil)
+        var topVC = rootVC
+        while let presented = topVC.presentedViewController {
+            topVC = presented
+        }
+        topVC.present(activityVC, animated: true)
     }
 }
