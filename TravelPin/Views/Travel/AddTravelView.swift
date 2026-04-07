@@ -4,72 +4,162 @@ import SwiftData
 struct AddTravelView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
-    
+
     @State private var name = ""
     @State private var startDate = Date()
     @State private var endDate = Date().addingTimeInterval(86400 * 3)
     @State private var selectedStatus = TravelStatus.wishing
     @State private var selectedType = TravelType.tourism
-    
+
     var body: some View {
         NavigationStack {
-            Form {
-                Section(header: Text(locKey: "add.travel.info")) {
-                    TextField("add.travel.name".localized, text: $name)
-                        .font(TPDesign.bodyFont(20))
-                    
-                    Picker("add.travel.type".localized, selection: $selectedType) {
-                        ForEach(TravelType.allCases, id: \.self) { type in
-                            HStack {
-                                Image(systemName: type.icon)
-                                Text(type.rawValue)
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: TPDesign.spacing24) {
+                    // MARK: - Basic Info Section
+                    CinematicFormSection(titleLocKey: "add.travel.info") {
+                        VStack(spacing: 0) {
+                            CinematicTextField(
+                                placeholderLocKey: "add.travel.name",
+                                text: $name,
+                                icon: "pencil.and.outline"
+                            )
+
+                            CinematicFormDivider()
+
+                            // Type Chips
+                            CinematicFormRow(icon: "tag", iconColor: TPDesign.warmAmber) {
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 8) {
+                                        ForEach(TravelType.allCases, id: \.self) { type in
+                                            CinematicChipButton(
+                                                title: type.displayName,
+                                                icon: type.icon,
+                                                isSelected: selectedType == type
+                                            ) {
+                                                withAnimation(TPDesign.springDefault) {
+                                                    selectedType = type
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
-                            .tag(type)
                         }
                     }
-                    .pickerStyle(.menu)
-                }
-                
-                Section(header: Text(locKey: "add.travel.dates")) {
-                    DatePicker("add.travel.start".localized, selection: $startDate, displayedComponents: .date)
-                    DatePicker("add.travel.end".localized, selection: $endDate, displayedComponents: .date)
-                }
-                
-                Section(header: Text(locKey: "add.travel.status")) {
-                    Picker("add.travel.status".localized, selection: $selectedStatus) {
-                        ForEach(TravelStatus.allCases, id: \.self) { status in
-                            Text(status.rawValue).tag(status)
+                    .cinematicFadeIn(delay: 0)
+
+                    // MARK: - Dates Section
+                    CinematicFormSection(titleLocKey: "add.travel.dates") {
+                        VStack(spacing: 0) {
+                            CinematicFormRow(icon: "calendar", iconColor: .tpAccent) {
+                                DatePicker(
+                                    "add.travel.start".localized,
+                                    selection: $startDate,
+                                    displayedComponents: .date
+                                )
+                                .font(TPDesign.bodyFont())
+                            }
+
+                            CinematicFormDivider()
+
+                            CinematicFormRow(icon: "calendar.badge.clock", iconColor: TPDesign.warmGold) {
+                                DatePicker(
+                                    "add.travel.end".localized,
+                                    selection: $endDate,
+                                    displayedComponents: .date
+                                )
+                                .font(TPDesign.bodyFont())
+                            }
                         }
                     }
-                    .pickerStyle(.segmented)
+                    .cinematicFadeIn(delay: 0.1)
+
+                    // MARK: - Status Section
+                    CinematicFormSection(titleLocKey: "add.travel.status") {
+                        VStack(spacing: 0) {
+                            PaddingRow {
+                                CinematicSegmentedPicker(
+                                    options: TravelStatus.allCases,
+                                    selection: $selectedStatus,
+                                    labelFor: { $0.displayName }
+                                )
+                            }
+                        }
+                    }
+                    .cinematicFadeIn(delay: 0.2)
+
+                    // MARK: - Action Buttons
+                    VStack(spacing: TPDesign.spacing12) {
+                        CinematicPrimaryButton(
+                            locKey: "add.travel.create",
+                            icon: "paperplane.fill"
+                        ) {
+                            saveTravel()
+                            dismiss()
+                        }
+                        .disabled(name.isEmpty)
+
+                        CinematicSecondaryButton(
+                            locKey: "common.cancel"
+                        ) {
+                            dismiss()
+                        }
+                    }
+                    .padding(.top, TPDesign.spacing8)
+                    .padding(.bottom, TPDesign.spacing32)
+                    .cinematicFadeIn(delay: 0.3)
                 }
+                .padding(.horizontal, TPDesign.spacing20)
+                .padding(.top, TPDesign.spacing16)
             }
+            .background(TPDesign.backgroundGradient)
             .navigationTitle("add.travel.title".localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("common.cancel".localized) { dismiss() }
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("add.travel.create".localized) {
-                        saveTravel()
-                        dismiss()
-                    }
-                    .disabled(name.isEmpty)
-                }
             }
         }
     }
-    
+
     private func saveTravel() {
         let newTravel = Travel(
             name: name,
             startDate: startDate,
             endDate: endDate,
-            status: selectedStatus,
-            type: selectedType
+            status: selectedStatus.rawValue,
+            type: selectedType.rawValue
         )
         modelContext.insert(newTravel)
+        
+        // Finalize buffered operations to ensure data appears immediately in @Query
+        try? modelContext.processPendingChanges()
+        try? modelContext.save()
+        TPHaptic.notification(.success)
+
+        // Schedule notifications for future trips
+        if startDate > Date() {
+            Task {
+                await NotificationService.shared.scheduleTripReminder(for: newTravel)
+                await NotificationService.shared.schedulePackingReminder(for: newTravel)
+            }
+        }
+    }
+}
+
+// MARK: - Padding Helper Row
+
+private struct PaddingRow<Content: View>: View {
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        HStack {
+            content()
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
     }
 }
 

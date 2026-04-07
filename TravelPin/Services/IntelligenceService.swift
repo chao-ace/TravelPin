@@ -37,7 +37,17 @@ class IntelligenceService: ObservableObject {
     private let weatherService = WeatherService.shared
     private let locationManager = CLLocationManager()
 
-    private init() {}
+    private init() {
+        // Debug Tip: Pre-set a recommendation to verify the Blue UI
+        self.activeRecommendation = IntelligenceRecommendation(
+            trigger: .distance(meters: 100),
+            title: "行程优化中",
+            subtitle: "当前位置步行 5 分钟可到达热门景点，是否加入行程？",
+            actionType: .discoverRemote,
+            internalSpotID: nil,
+            remoteSpotName: "附近景点"
+        )
+    }
 
     // MARK: - Permission Requests
 

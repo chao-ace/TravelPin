@@ -64,7 +64,7 @@ class AIAssistantService: ObservableObject {
 
     func generateJournalComplete(for travel: Travel, style: WritingStyle = .poetic) async throws -> String {
         let prompt = buildPrompt(for: travel, style: style)
-        var effectiveProvider = provider
+        var effectiveProvider = registry.activeProvider
         
         if await !effectiveProvider.isAvailable {
             effectiveProvider = LocalTemplateProvider()

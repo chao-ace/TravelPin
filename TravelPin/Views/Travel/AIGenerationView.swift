@@ -53,21 +53,14 @@ struct AIGenerationView: View {
             .pickerStyle(.wheel)
             .frame(height: 120)
             
-            Button(action: generateAction) {
-                if isGenerating {
-                    ProgressView()
-                } else {
-                    Text(locKey: "ai.review.generate")
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(Color.tpAccent)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-                }
+            CinematicPrimaryButton(
+                locKey: "ai.review.generate",
+                icon: "sparkles",
+                isLoading: isGenerating
+            ) {
+                generateAction()
             }
             .padding(.horizontal, 30)
-            .disabled(isGenerating)
             
             Spacer()
         }
@@ -92,29 +85,44 @@ struct AIGenerationView: View {
                     Text(generatedText)
                         .font(.custom("Palatino", size: 18)) // Literary feel
                         .lineSpacing(10)
-                        .foregroundStyle(.primary.opacity(0.8))
+                        .foregroundStyle(TPDesign.obsidian.opacity(0.85))
                 }
-                .padding(30)
+                .padding(32)
                 .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(.quaternary, lineWidth: 0.5)
-                        .background(.white)
+                    RoundedRectangle(cornerRadius: 24)
+                        .fill(.white.opacity(0.6))
+                        .background(.ultraThinMaterial)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 24)
+                                .stroke(.white.opacity(0.4), lineWidth: 1)
+                        )
                 )
+                .shadowLarge()
                 
                 HStack(spacing: 16) {
                     Button(action: {
                         let pasteboard = UIPasteboard.general
                         pasteboard.string = generatedText
+                        TPHaptic.notification(.success)
                     }) {
                         Label("ai.review.copy".localized, systemImage: "doc.on.doc")
+                            .font(TPDesign.bodyFont(15, weight: .bold))
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 12)
+                            .background(Capsule().fill(.ultraThinMaterial))
+                            .overlay(Capsule().stroke(TPDesign.divider, lineWidth: 1))
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.plain)
                     
                     ShareLink(item: generatedText) {
                         Label("ai.review.share".localized, systemImage: "square.and.arrow.up")
+                            .font(TPDesign.bodyFont(15, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 12)
+                            .background(TPDesign.accentGradient)
+                            .clipShape(Capsule())
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(Color.tpAccent)
                 }
                 .padding(.bottom, 40)
             }

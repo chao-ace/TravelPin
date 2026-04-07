@@ -9,7 +9,7 @@ struct TripPosterView: View {
         VStack(spacing: 0) {
             // Header Image/Icon Section
             ZStack(alignment: .bottomLeading) {
-                LinearGradient(colors: [Color.tpAccent, Color.tpAccent.opacity(0.6)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                TPDesign.brandGradient
                     .frame(height: 200)
                 
                 VStack(alignment: .leading, spacing: 10) {
@@ -58,7 +58,7 @@ struct TripPosterView: View {
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 15) {
                         ForEach(travel.spots.prefix(4)) { spot in
                             VStack(alignment: .leading, spacing: 8) {
-                                if let data = spot.photoData.first, let uiImage = UIImage(data: data) {
+                                if let photo = spot.photos.first, let data = photo.data, let uiImage = UIImage(data: data) {
                                     Image(uiImage: uiImage)
                                         .resizable()
                                         .scaledToFill()

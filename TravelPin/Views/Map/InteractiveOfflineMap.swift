@@ -80,7 +80,7 @@ struct InteractiveOfflineMap: UIViewRepresentable {
         
         func mapView(_ mapView: MKMapView, annotationView view: MKAnnotationView, calloutAccessoryControlTapped control: UIControl) {
             // Placeholder: Could trigger a notification or closure to navigate
-            print("Tapped detail for: \(view.annotation?.title?? ?? "Unknown")")
+            print("Tapped detail for: \(view.annotation?.title ?? "Unknown")")
         }
         
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {

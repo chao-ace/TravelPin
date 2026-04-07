@@ -10,7 +10,13 @@ enum PosterExportFormat: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var displayName: String { rawValue.localized }
+    var displayName: String {
+        switch self {
+        case .xiaohongshu: return "小红书卡片"
+        case .moments:     return "朋友圈动态"
+        case .landscape:   return "全景海报"
+        }
+    }
 
     var ratio: CGFloat {
         switch self {
@@ -68,8 +74,9 @@ struct XiaohongshuPoster: View {
                 )
 
                 // If there's a cover photo, use it
-                if let firstSpot = travel.spots.first,
-                   let data = firstSpot.photoData.first,
+                if let firstSpot = travel.spots.first(where: { !$0.photos.isEmpty }),
+                   let photo = firstSpot.photos.first,
+                   let data = photo.data,
                    let uiImage = UIImage(data: data) {
                     Image(uiImage: uiImage)
                         .resizable()
@@ -91,8 +98,8 @@ struct XiaohongshuPoster: View {
                         .foregroundStyle(.white)
 
                     HStack(spacing: 16) {
-                        Label("\(travel.itineraries.count)\("poster.stat.days".localized)", systemImage: "calendar")
-                        Label("\(travel.spots.count)\("poster.stat.spots".localized)", systemImage: "mappin.and.ellipse")
+                        Label("\(travel.itineraries.count) 天", systemImage: "calendar")
+                        Label("\(travel.spots.count) 处足迹", systemImage: "mappin.and.ellipse")
                         Text(travel.type.displayName)
                     }
                     .font(.system(size: 16, weight: .medium))
@@ -103,7 +110,7 @@ struct XiaohongshuPoster: View {
             .frame(height: 576) // 40% of 1440
 
             // Photo Grid (middle section)
-            let photoSpots = travel.spots.filter { !$0.photoData.isEmpty }
+            let photoSpots = travel.spots.filter { !$0.photos.isEmpty }
 
             if !photoSpots.isEmpty {
                 LazyVGrid(
@@ -113,7 +120,8 @@ struct XiaohongshuPoster: View {
                     spacing: 8
                 ) {
                     ForEach(photoSpots.prefix(4)) { spot in
-                        if let data = spot.photoData.first,
+                        if let photo = spot.photos.first,
+                           let data = photo.data,
                            let uiImage = UIImage(data: data) {
                             Image(uiImage: uiImage)
                                 .resizable()
@@ -132,7 +140,7 @@ struct XiaohongshuPoster: View {
             HStack(spacing: 40) {
                 VStack(spacing: 4) {
                     Text(formatDate(travel.startDate))
-                    Text(locKey: "poster.date.start")
+                    Text("出发日期")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -142,7 +150,7 @@ struct XiaohongshuPoster: View {
 
                 VStack(spacing: 4) {
                     Text(formatDate(travel.endDate))
-                    Text(locKey: "poster.date.end")
+                    Text("结束日期")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -159,7 +167,7 @@ struct XiaohongshuPoster: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer()
-                Text(locKey: "dashboard.empty.title")
+                Text("记录你的每一段不凡旅程")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
@@ -193,8 +201,9 @@ struct MomentsPoster: View {
     var body: some View {
         ZStack {
             // Background
-            if let firstSpot = travel.spots.first,
-               let data = firstSpot.photoData.first,
+            if let firstSpot = travel.spots.first(where: { !$0.photos.isEmpty }),
+               let photo = firstSpot.photos.first,
+               let data = photo.data,
                let uiImage = UIImage(data: data) {
                 Image(uiImage: uiImage)
                     .resizable()
@@ -219,7 +228,7 @@ struct MomentsPoster: View {
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
 
-                Text("\(travel.itineraries.count)\("poster.stat.days".localized) · \(travel.spots.count)\("poster.stat.spots".localized)")
+                Text("\(travel.itineraries.count) 天 · \(travel.spots.count) 处足迹")
                     .font(.system(size: 20, weight: .medium))
                     .foregroundStyle(.white.opacity(0.8))
 
@@ -234,7 +243,7 @@ struct MomentsPoster: View {
                     HStack(spacing: 8) {
                         ForEach(travel.spots.prefix(3)) { spot in
                             Group {
-                                if let data = spot.photoData.first, let uiImage = UIImage(data: data) {
+                                if let photo = spot.photos.first, let data = photo.data, let uiImage = UIImage(data: data) {
                                     Image(uiImage: uiImage)
                                         .resizable()
                                         .scaledToFill()
@@ -293,9 +302,9 @@ struct PosterExportSheet: View {
                         RoundedRectangle(cornerRadius: 16)
                             .fill(.quaternary.opacity(0.3))
                             .overlay(
-                                VStack(spacing: 12) {
+                        VStack(spacing: 12) {
                                     ProgressView()
-                                    Text(locKey: "poster.export.rendering")
+                                    Text("渲染中...")
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
@@ -311,7 +320,7 @@ struct PosterExportSheet: View {
                         Button {
                             shareImage(image)
                         } label: {
-                            Label("poster.export.share".localized, systemImage: "square.and.arrow.up")
+                            Label("分享海报", systemImage: "square.and.arrow.up")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.borderedProminent)
@@ -320,7 +329,7 @@ struct PosterExportSheet: View {
                         Button {
                             UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
                         } label: {
-                            Label("poster.export.save".localized, systemImage: "arrow.down.circle")
+                            Label("保存到相册", systemImage: "arrow.down.circle")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.bordered)
@@ -331,11 +340,11 @@ struct PosterExportSheet: View {
                 Spacer()
             }
             .padding(.top)
-            .navigationTitle("poster.export.title".localized)
+            .navigationTitle("导出海报")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("common.done".localized) { dismiss() }
+                    Button("完成") { dismiss() }
                 }
             }
             .task {
