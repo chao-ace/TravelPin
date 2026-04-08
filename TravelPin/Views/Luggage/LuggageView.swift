@@ -4,9 +4,18 @@ import SwiftData
 struct LuggageView: View {
     @Bindable var travel: Travel
     @Environment(\.modelContext) private var modelContext
+    
+    @Query(sort: \PackingTemplate.createdAt, order: .reverse) private var customTemplates: [PackingTemplate]
+    @Query(sort: \Travel.startDate, order: .reverse) private var allTravels: [Travel]
 
     @State private var newItemName = ""
     @State private var selectedCategory = LuggageCategory.clothes
+    
+    // Management Sheets
+    @State private var showingTemplateLibrary = false
+    @State private var showingTripHistory = false
+    @State private var showingSaveTemplateAlert = false
+    @State private var newTemplateName = ""
 
     private var totalItems: Int {
         travel.luggageItems.count
@@ -35,6 +44,41 @@ struct LuggageView: View {
         .background(TPDesign.backgroundGradient)
         .navigationTitle("luggage.title".localized)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button(action: { showingSaveTemplateAlert = true }) {
+                        Label("luggage.action.save_as_template".localized, systemImage: "plus.square.on.square")
+                    }
+                    .disabled(travel.luggageItems.isEmpty)
+                    
+                    Button(action: { showingTemplateLibrary = true }) {
+                        Label("luggage.action.apply_template".localized, systemImage: "square.grid.2x2")
+                    }
+                    
+                    Button(action: { showingTripHistory = true }) {
+                        Label("luggage.action.copy_from_trip".localized, systemImage: "clock.arrow.circlepath")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .foregroundStyle(TPDesign.obsidian)
+                }
+            }
+        }
+        .sheet(isPresented: $showingTemplateLibrary) {
+            templateLibrarySheet
+        }
+        .sheet(isPresented: $showingTripHistory) {
+            tripHistorySheet
+        }
+        .alert("luggage.action.save_as_template".localized, isPresented: $showingSaveTemplateAlert) {
+            TextField("luggage.placeholder.template_name".localized, text: $newTemplateName)
+            Button("common.cancel".localized, role: .cancel) { newTemplateName = "" }
+            Button("common.confirm".localized) {
+                saveAsTemplate()
+            }
+            .disabled(newTemplateName.isEmpty)
+        }
     }
 
     // MARK: - Subviews
@@ -92,10 +136,10 @@ struct LuggageView: View {
                 }
             }
             
-            // Quick Add Templates
+            // Quick Add Templates (System Provided)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    ForEach(templates(for: selectedCategory), id: \.self) { locKey in
+                    ForEach(systemTemplates(for: selectedCategory), id: \.self) { locKey in
                         Button {
                             withAnimation(TPDesign.springDefault) {
                                 let newItem = LuggageItem(name: locKey.localized, categoryRaw: selectedCategory.rawValue)
@@ -130,7 +174,7 @@ struct LuggageView: View {
         .clipShape(RoundedRectangle(cornerRadius: TPDesign.radiusLarge))
         .overlay(
             RoundedRectangle(cornerRadius: TPDesign.radiusLarge)
-                .stroke(.white.opacity(0.25), lineWidth: 1)
+                .stroke(TPDesign.obsidian.opacity(0.1), lineWidth: 1)
         )
         .shadowSmall()
         .cinematicFadeIn(delay: 0.1)
@@ -138,7 +182,8 @@ struct LuggageView: View {
 
     private var categoryGroups: some View {
         Group {
-            ForEach(LuggageCategory.allCases, id: \.self) { category in
+            let sortedCategories = LuggageCategory.allCases
+            ForEach(sortedCategories, id: \.self) { category in
                 let items = travel.luggageItems.filter { $0.categoryRaw == category.rawValue }
                 if !items.isEmpty {
                     luggageCategorySection(category: category, items: items)
@@ -226,12 +271,97 @@ struct LuggageView: View {
             .clipShape(RoundedRectangle(cornerRadius: TPDesign.radiusLarge))
             .overlay(
                 RoundedRectangle(cornerRadius: TPDesign.radiusLarge)
-                    .stroke(.white.opacity(0.25), lineWidth: 1)
+                    .stroke(TPDesign.obsidian.opacity(0.1), lineWidth: 1)
             )
             .shadowSmall()
         }
         .cinematicFadeIn(delay: 0.15)
     }
+
+    // MARK: - Sheets
+
+    private var templateLibrarySheet: some View {
+        NavigationStack {
+            List {
+                if customTemplates.isEmpty {
+                    ContentUnavailableView(
+                        "luggage.empty.templates".localized,
+                        systemImage: "square.grid.2x2",
+                        description: Text("文档第06节建议建立模板复用")
+                    )
+                } else {
+                    ForEach(customTemplates) { template in
+                        Button {
+                            applyTemplate(template)
+                            showingTemplateLibrary = false
+                        } label: {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(template.name)
+                                    .font(TPDesign.bodyFont(16, weight: .bold))
+                                    .foregroundStyle(TPDesign.textPrimary)
+                                Text("\(template.items.count) \("common.items".localized)")
+                                    .font(TPDesign.captionFont())
+                                    .foregroundStyle(TPDesign.textTertiary)
+                            }
+                            .padding(.vertical, 4)
+                        }
+                        .swipeActions(edge: .trailing) {
+                            Button(role: .destructive) {
+                                modelContext.delete(template)
+                            } label: {
+                                Label("common.delete".localized, systemImage: "trash")
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("luggage.title.template_library".localized)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("common.cancel".localized) { showingTemplateLibrary = false }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+    }
+
+    private var tripHistorySheet: some View {
+        NavigationStack {
+            List {
+                ForEach(allTravels.filter { $0.id != travel.id && !$0.luggageItems.isEmpty }) { historicalTravel in
+                    Button {
+                        copyFromTravel(historicalTravel)
+                        showingTripHistory = false
+                    } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(historicalTravel.name)
+                                .font(TPDesign.bodyFont(16, weight: .bold))
+                                .foregroundStyle(TPDesign.textPrimary)
+                            HStack {
+                                Text(historicalTravel.startDate.formatted(.dateTime.year().month().day()))
+                                Spacer()
+                                Text("\(historicalTravel.luggageItems.count) \("common.items".localized)")
+                            }
+                            .font(TPDesign.captionFont())
+                            .foregroundStyle(TPDesign.textTertiary)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+            }
+            .navigationTitle("luggage.title.trip_history".localized)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("common.cancel".localized) { showingTripHistory = false }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+    }
+
+    // MARK: - Logic
 
     private func addItem() {
         withAnimation(TPDesign.springDefault) {
@@ -244,7 +374,40 @@ struct LuggageView: View {
         }
     }
     
-    private func templates(for category: LuggageCategory) -> [String] {
+    private func saveAsTemplate() {
+        let template = PackingTemplate(name: newTemplateName)
+        for item in travel.luggageItems {
+            let tItem = TemplateItem(name: item.name, categoryRaw: item.categoryRaw, quantity: item.quantity, notes: item.notes)
+            tItem.template = template
+            template.items.append(tItem)
+        }
+        modelContext.insert(template)
+        try? modelContext.save()
+        newTemplateName = ""
+        TPHaptic.notification(.success)
+    }
+    
+    private func applyTemplate(_ template: PackingTemplate) {
+        for tItem in template.items {
+            let newItem = LuggageItem(name: tItem.name, categoryRaw: tItem.categoryRaw, quantity: tItem.quantity, notes: tItem.notes)
+            newItem.travel = travel
+            modelContext.insert(newItem)
+        }
+        try? modelContext.save()
+        TPHaptic.notification(.success)
+    }
+    
+    private func copyFromTravel(_ source: Travel) {
+        for item in source.luggageItems {
+            let newItem = LuggageItem(name: item.name, categoryRaw: item.categoryRaw, quantity: item.quantity, notes: item.notes)
+            newItem.travel = travel
+            modelContext.insert(newItem)
+        }
+        try? modelContext.save()
+        TPHaptic.notification(.success)
+    }
+    
+    private func systemTemplates(for category: LuggageCategory) -> [String] {
         switch category {
         case .clothes:
             return ["luggage.tpl.tshirt", "luggage.tpl.pants", "luggage.tpl.jacket", "luggage.tpl.underwear", "luggage.tpl.socks"]

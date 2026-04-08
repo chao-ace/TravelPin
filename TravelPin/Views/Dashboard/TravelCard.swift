@@ -47,118 +47,117 @@ struct TravelCard: View {
                 }
             }
 
-            HStack(spacing: 0) {
-                // Left accent stripe — status color
-                Rectangle()
-                    .fill(
-                        LinearGradient(
-                            colors: [statusColor, statusColor.opacity(0.4)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    .frame(width: 3)
-                    .clipShape(UnevenRoundedRectangle(topLeadingRadius: 14, bottomLeadingRadius: 14))
-
-                HStack(spacing: TPDesign.spacing20) {
-                    // Left: Visual Portal
-                    ZStack {
-                        if let uiImage = firstSpotPhoto {
-                            Image(uiImage: uiImage)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 64, height: 64)
-                                .clipShape(RoundedRectangle(cornerRadius: 16))
-                                .overlay(
-                                    LinearGradient(
-                                        colors: [.black.opacity(0.08), .clear],
-                                        startPoint: .bottom,
-                                        endPoint: .top
-                                    )
-                                    .clipShape(RoundedRectangle(cornerRadius: 16))
+            HStack(spacing: TPDesign.spacing20) {
+                // Left: Visual Portal
+                ZStack {
+                    if let uiImage = firstSpotPhoto {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 64, height: 64)
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                            .overlay(
+                                LinearGradient(
+                                    colors: [.black.opacity(0.08), .clear],
+                                    startPoint: .bottom,
+                                    endPoint: .top
                                 )
-                        } else {
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(statusColor.opacity(0.08))
-                                .frame(width: 64, height: 64)
-
-                            Image(systemName: travel.type.icon)
-                                .font(.system(size: 24, weight: .light))
-                                .foregroundStyle(statusColor)
-                        }
-                    }
-                    .overlay(
+                                .clipShape(RoundedRectangle(cornerRadius: 16))
+                            )
+                    } else {
                         RoundedRectangle(cornerRadius: 16)
-                            .stroke(.white.opacity(0.2), lineWidth: 0.3)
-                    )
-                    .shadowSmall()
+                            .fill(statusColor.opacity(0.08))
+                            .frame(width: 64, height: 64)
 
-                    // Center: Typographic Core
-                    VStack(alignment: .leading, spacing: TPDesign.spacing4) {
-                        Text(travel.name)
-                            .font(TPDesign.editorialSerif(18))
-                            .foregroundStyle(TPDesign.obsidian)
-                            .lineLimit(1)
-
-                        Button {
-                            TPHaptic.selection()
-                            showingDatePicker = true
-                        } label: {
-                            VStack(alignment: .leading, spacing: 4) {
-                                HStack(spacing: TPDesign.spacing4) {
-                                    Image(systemName: "calendar")
-                                        .font(.system(size: 10, weight: .bold))
-                                    Text("\(travel.startDate.formatted(.dateTime.day().month())) - \(travel.endDate.formatted(.dateTime.day().month()))")
-                                        .font(TPDesign.captionFont())
-                                }
-                                .foregroundStyle(TPDesign.textTertiary)
-                                .trackingMedium()
-                                
-                                TravelingCountdown(startDate: travel.startDate)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                    }
-
-                    Spacer()
-
-                    // Right: Zen Status Indicator
-                    VStack(alignment: .trailing, spacing: 6) {
-                        Text(travel.status.displayName.uppercased())
-                            .font(.system(size: 9, weight: .black))
-                            .tracking(1.5)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(statusColor.opacity(0.08))
+                        Image(systemName: travel.type.icon)
+                            .font(.system(size: 24, weight: .light))
                             .foregroundStyle(statusColor)
-                            .clipShape(Capsule())
-
-                        Circle()
-                            .fill(statusColor)
-                            .frame(width: 4, height: 4)
-                            .padding(.trailing, 4)
                     }
                 }
-                .padding(.vertical, 14)
-                .padding(.horizontal, 18)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(.white.opacity(0.2), lineWidth: 0.3)
+                )
+                .shadowSmall()
+
+                // Center: Typographic Core
+                VStack(alignment: .leading, spacing: TPDesign.spacing2) {
+                    Text(travel.name)
+                        .font(TPDesign.editorialSerif(18))
+                        .foregroundStyle(TPDesign.obsidian)
+                        .lineLimit(1)
+
+                    Button {
+                        TPHaptic.selection()
+                        showingDatePicker = true
+                    } label: {
+                        HStack(spacing: TPDesign.spacing4) {
+                            Image(systemName: "calendar")
+                                .font(.system(size: 10, weight: .bold))
+                            Text("\(travel.startDate.formatted(.dateTime.day().month())) - \(travel.endDate.formatted(.dateTime.day().month()))")
+                                .font(TPDesign.captionFont())
+                                .lineLimit(1)
+                                .fixedSize(horizontal: true, vertical: false)
+                        }
+                        .foregroundStyle(TPDesign.textTertiary)
+                        .trackingMedium()
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                Spacer()
+
+                // Right: Zen Status Indicator
+                VStack(alignment: .trailing, spacing: 6) {
+                    Text(travel.status.displayName.uppercased())
+                        .font(.system(size: 9, weight: .black))
+                        .tracking(1.5)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(statusColor.opacity(0.08))
+                        .foregroundStyle(statusColor)
+                        .clipShape(Capsule())
+                }
             }
+            .padding(.vertical, 12)
+            .padding(.leading, 12 + 4)
+            .padding(.trailing, 16)
             .background(
-                RoundedRectangle(cornerRadius: TPDesign.radiusMedium)
-                    .fill(TPDesign.alabaster) // Explicitly white/alabaster base
-                    .overlay(.ultraThinMaterial) // Layer blur on top of white
-                    .overlay(
-                        RoundedRectangle(cornerRadius: TPDesign.radiusMedium)
-                            .stroke(
-                                LinearGradient(
-                                    colors: [.white.opacity(0.6), .white.opacity(0.2)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 0.5
+                ZStack(alignment: .leading) {
+                    // 1. Dynamic Card Base
+                    RoundedRectangle(cornerRadius: TPDesign.radiusMedium)
+                        .fill(TPDesign.alabaster)
+
+                    // 2. Accent Trim (Masked to leading edge)
+                    Rectangle()
+                        .fill(
+                            LinearGradient(
+                                colors: [statusColor, statusColor.opacity(0.4)],
+                                startPoint: .top,
+                                endPoint: .bottom
                             )
-                    )
-                    .liquidShimmer()
+                        )
+                        .frame(width: 4)
+
+                    // 3. Inner Material Blur Enhancement
+                    RoundedRectangle(cornerRadius: TPDesign.radiusMedium)
+                        .fill(.ultraThinMaterial.opacity(0.1))
+                }
+                .clipShape(RoundedRectangle(cornerRadius: TPDesign.radiusMedium))
+                .overlay(
+                    // 4. Razor Edge Stroke
+                    RoundedRectangle(cornerRadius: TPDesign.radiusMedium)
+                        .stroke(
+                            LinearGradient(
+                                colors: [TPDesign.obsidian.opacity(0.2), TPDesign.obsidian.opacity(0.05)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 0.5
+                        )
+                )
             )
+
             .offset(x: offset)
             .highPriorityGesture(
                 DragGesture(minimumDistance: 20)

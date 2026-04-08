@@ -17,6 +17,8 @@ struct EditSpotView: View {
     @State private var isGeocoding = false
     @State private var locationConfirmed = false
     
+    @State private var status: SpotStatus
+    
     init(spot: Spot, travel: Travel) {
         self.spot = spot
         self.travel = travel
@@ -24,6 +26,7 @@ struct EditSpotView: View {
         _selectedType = State(initialValue: spot.type)
         _notes = State(initialValue: spot.notes)
         _selectedItinerary = State(initialValue: spot.itinerary)
+        _status = State(initialValue: spot.status)
     }
     
     private let chipColumns = [
@@ -35,6 +38,24 @@ struct EditSpotView: View {
             ZStack {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: TPDesign.spacing24) {
+                        // Visit State
+                        CinematicFormSection(titleLocKey: "add.spot.status") {
+                            HStack {
+                                CinematicChipButton(
+                                    title: "footprint.stat.visited_short".localized,
+                                    icon: "checkmark.circle.fill",
+                                    isSelected: status == .travelled
+                                ) {
+                                    withAnimation {
+                                        status = status == .travelled ? .planning : .travelled
+                                        TPHaptic.selection()
+                                    }
+                                }
+                                Spacer()
+                            }
+                            .padding(16)
+                        }
+
                         // Details
                         CinematicFormSection(titleLocKey: "add.spot.detail") {
                             VStack(spacing: 0) {
@@ -140,8 +161,21 @@ struct EditSpotView: View {
         spot.typeRaw = selectedType.rawValue
         spot.notes = notes
         spot.itinerary = selectedItinerary
+        spot.statusRaw = status.rawValue
         
         try? modelContext.save()
+        
+        // Update live activity if running
+        if let it = spot.itinerary {
+            let daySpots = it.spots
+            let completed = daySpots.filter { $0.status == .travelled }.count
+            LiveActivityManager.shared.updateActivity(
+                completedSpots: completed,
+                totalSpots: daySpots.count,
+                currentSpotName: spot.name
+            )
+        }
+        
         TPHaptic.notification(.success)
         dismiss()
     }

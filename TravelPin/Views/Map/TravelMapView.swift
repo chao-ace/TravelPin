@@ -28,7 +28,7 @@ struct TravelMapView: View {
                         Image(systemName: isOfflineMode ? "airplane.circle.fill" : "network")
                             .font(.system(size: 16, weight: .semibold))
                         if isOfflineMode {
-                            Text("离线")
+                            Text(locKey: "map.status.offline")
                                 .font(.system(size: 11, weight: .bold))
                         }
                     }
@@ -39,7 +39,7 @@ struct TravelMapView: View {
                         if isOfflineMode {
                             Color.tpAccent
                         } else {
-                            Color.white.opacity(0.6).background(.ultraThinMaterial)
+                            TPDesign.secondaryBackground.opacity(0.6).background(.ultraThinMaterial)
                         }
                     }
                     .clipShape(Capsule())
@@ -64,7 +64,7 @@ struct TravelMapView: View {
                     .foregroundStyle(.primary)
                     .padding(.horizontal, isDownloading ? 14 : 12)
                     .padding(.vertical, 10)
-                    .background(Color.white.opacity(0.6).background(.ultraThinMaterial))
+                    .background(TPDesign.secondaryBackground.opacity(0.6).background(.ultraThinMaterial))
                     .clipShape(Capsule())
                 }
                 .disabled(isDownloading)
@@ -76,7 +76,7 @@ struct TravelMapView: View {
                             .font(.system(size: 14, weight: .semibold))
                             .foregroundStyle(.red)
                             .padding(10)
-                            .background(Color.white.opacity(0.6).background(.ultraThinMaterial))
+                            .background(TPDesign.secondaryBackground.opacity(0.6).background(.ultraThinMaterial))
                             .clipShape(Capsule())
                     }
                 }
@@ -86,21 +86,26 @@ struct TravelMapView: View {
         .safeAreaInset(edge: .bottom) {
             daySelector
         }
+        .onAppear {
+            if !NetworkMonitor.shared.isConnected {
+                ToastManager.shared.show(type: .warning, message: "map.error.offline".localized)
+            }
+        }
         .navigationTitle("detail.menu.explore_map".localized)
         .navigationBarTitleDisplayMode(.inline)
-        .alert("地图已下载", isPresented: $showDownloadSuccess) {
-            Button("好的") { }
+        .alert("map.alert.download_success.title".localized, isPresented: $showDownloadSuccess) {
+            Button("common.done".localized) { }
         } message: {
-            Text("已缓存 \(downloadedTiles) 个地图瓦片 (\(MapTileManager.shared.cacheSizeDescription))，可离线使用")
+            Text(String(format: "map.alert.download_success.message".localized, downloadedTiles, MapTileManager.shared.cacheSizeDescription))
         }
-        .confirmationDialog("清除离线地图缓存？", isPresented: $showClearConfirm) {
-            Button("清除缓存", role: .destructive) {
+        .confirmationDialog("map.alert.clear_cache.title".localized, isPresented: $showClearConfirm) {
+            Button("map.action.clear".localized, role: .destructive) {
                 MapTileManager.shared.clearCache()
                 TPHaptic.notification(.success)
             }
-            Button("取消", role: .cancel) { }
+            Button("common.cancel".localized, role: .cancel) { }
         } message: {
-            Text("将删除所有已下载的地图瓦片 (\(MapTileManager.shared.cacheSizeDescription))")
+            Text(String(format: "map.alert.clear_cache.message".localized, MapTileManager.shared.cacheSizeDescription))
         }
     }
 
@@ -151,7 +156,7 @@ struct TravelMapView: View {
                 Button {
                     selectedDay = 0
                 } label: {
-                    Text("全部")
+                    Text(locKey: "map.action.all")
                         .font(.caption).bold()
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)

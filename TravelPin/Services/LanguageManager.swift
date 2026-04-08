@@ -53,9 +53,52 @@ class LanguageManager: ObservableObject {
         
         // Settings Page
         "settings.title": [.english: "Settings", .simplifiedChinese: "设置"],
-        "settings.language": [.english: "Language", .simplifiedChinese: "多语言设置"],
-        "settings.appearance": [.english: "Appearance", .simplifiedChinese: "外观偏好"],
-        "settings.version": [.english: "Version", .simplifiedChinese: "当前版本"],
+        "settings.section.ai": [.english: "AI Assistant", .simplifiedChinese: "AI 智能助手"],
+        "settings.section.account": [.english: "Account & Sync", .simplifiedChinese: "个人与账户"],
+        "settings.section.preferences": [.english: "Preferences", .simplifiedChinese: "应用偏好"],
+        "settings.section.storage": [.english: "Storage", .simplifiedChinese: "存储空间"],
+        "settings.section.support": [.english: "Support & Legal", .simplifiedChinese: "支持与关于"],
+        
+        "settings.row.ai_config": [.english: "AI Model Config", .simplifiedChinese: "AI 模型配置"],
+        "settings.row.icloud": [.english: "iCloud Sync", .simplifiedChinese: "iCloud 云同步"],
+        "settings.row.language": [.english: "Language", .simplifiedChinese: "语言设置"],
+        "settings.row.app_icon": [.english: "Change App Icon", .simplifiedChinese: "更换图标"],
+        "settings.row.dark_mode": [.english: "Dark Mode", .simplifiedChinese: "深色模式"],
+        "settings.row.haptic": [.english: "Haptic Feedback", .simplifiedChinese: "触感反馈"],
+        "settings.row.clear_cache": [.english: "Clear Cache", .simplifiedChinese: "清除缓存"],
+        "settings.row.data_mgmt": [.english: "Data Management", .simplifiedChinese: "数据管理"],
+        "settings.row.rate": [.english: "Rate on App Store", .simplifiedChinese: "去 App Store 评分"],
+        "settings.row.feedback": [.english: "Feedback", .simplifiedChinese: "意见反馈"],
+        "settings.row.privacy": [.english: "Privacy Policy", .simplifiedChinese: "隐私政策"],
+        "settings.row.terms": [.english: "Terms of Service", .simplifiedChinese: "使用条款"],
+        "settings.row.cache_calculating": [.english: "Calculating...", .simplifiedChinese: "计算中..."],
+
+        // Profile View
+        "profile.title": [.english: "Profile", .simplifiedChinese: "个人资料"],
+        "profile.user.name": [.english: "Designer Chao", .simplifiedChinese: "设计师 chao"],
+        "profile.user.role": [.english: "Standard User", .simplifiedChinese: "普通用户"],
+        "profile.user.tag": [.english: "TravelPin Explorer", .simplifiedChinese: "TravelPin 旅行家"],
+        "profile.stat.journeys": [.english: "Journeys", .simplifiedChinese: "旅程"],
+        "profile.stat.spots": [.english: "Spots", .simplifiedChinese: "足迹"],
+        "profile.stat.photos": [.english: "Photos", .simplifiedChinese: "照片"],
+        "profile.stat.cities": [.english: "Cities", .simplifiedChinese: "城市"],
+        "profile.section.achievements": [.english: "Travel Achievements", .simplifiedChinese: "旅行成就"],
+        "profile.achievement.first": [.english: "First Journey", .simplifiedChinese: "初次启程"],
+        "profile.achievement.explorer": [.english: "World Explorer", .simplifiedChinese: "世界探索者"],
+        "profile.achievement.photographer": [.english: "Photo Master", .simplifiedChinese: "摄影达人"],
+        "profile.achievement.ten_trips": [.english: "10-Trip Veteran", .simplifiedChinese: "十旅达人"],
+        "profile.achievement.footprints": [.english: "Footprints Everywhere", .simplifiedChinese: "足迹遍布"],
+        "profile.achievement.ai": [.english: "AI Memoirs", .simplifiedChinese: "AI 旅记家"],
+
+        // Feedback Sheet
+        "feedback.title": [.english: "Feedback & Suggestions", .simplifiedChinese: "意见反馈与建议"],
+        "feedback.placeholder": [.english: "Describe your feedback or feature request here...", .simplifiedChinese: "在此输入您的意见反馈或功能建议..."],
+        "feedback.submit": [.english: "Submit", .simplifiedChinese: "提交"],
+        "feedback.success": [.english: "Thank you for your feedback!", .simplifiedChinese: "感谢您的反馈！"],
+        "feedback.error": [.english: "Please enter some content.", .simplifiedChinese: "请输入反馈内容。"],
+        "feedback.type.bug": [.english: "Bug Report", .simplifiedChinese: "问题报错"],
+        "feedback.type.feature": [.english: "Feature Request", .simplifiedChinese: "功能建议"],
+        "feedback.type.other": [.english: "Other", .simplifiedChinese: "其他内容"],
 
         // Dashboard & Onboarding
         "dashboard.title": [.english: "My Journeys", .simplifiedChinese: "我的旅程"],
@@ -70,6 +113,20 @@ class LanguageManager: ObservableObject {
         "dashboard.empty.subtitle": [.english: "Start your first journey to see your footprint review.", .simplifiedChinese: "开启第一场旅程，查看您的足迹回顾。"],
         "dashboard.empty.button": [.english: "Create Journey", .simplifiedChinese: "开启旅程"],
         "dashboard.featured.badge": [.english: "Featured Trip", .simplifiedChinese: "精选回顾"],
+        "dashboard.action.all": [.english: "All Journeys", .simplifiedChinese: "全部旅程"],
+        "dashboard.action.view_all": [.english: "View All Journeys", .simplifiedChinese: "查看全部旅程"],
+        "dashboard.search.placeholder": [.english: "Search journeys, dates...", .simplifiedChinese: "搜索旅程名称、日期..."],
+        "dashboard.search.empty": [.english: "No relevant journeys found", .simplifiedChinese: "未找到相关旅程"],
+        "dashboard.recent.title": [.english: "Recent Journey", .simplifiedChinese: "近期旅程"],
+        "dashboard.recent.days_suffix": [.english: "d", .simplifiedChinese: " 天"],
+        "dashboard.recent.spots_suffix": [.english: " spots", .simplifiedChinese: " 处足迹"],
+        "dashboard.archive.search.placeholder": [.english: "Search all journeys...", .simplifiedChinese: "在全部旅程中搜索..."],
+        "dashboard.archive.year_suffix": [.english: "", .simplifiedChinese: " 年"],
+        "dashboard.archive.title": [.english: "All Journeys", .simplifiedChinese: "全部旅程"],
+        "dashboard.workflow.stage1": [.english: "Planning", .simplifiedChinese: "旅行规划"],
+        "dashboard.workflow.stage2": [.english: "Execution", .simplifiedChinese: "旅行执行"],
+        "dashboard.workflow.stage3": [.english: "Review", .simplifiedChinese: "足迹回顾"],
+        "dashboard.workflow.guide_suffix": [.english: " Guide", .simplifiedChinese: "指南"],
 
         // Footprints Review
         "footprint.title": [.english: "Footprint Review", .simplifiedChinese: "足迹回顾"],
@@ -81,6 +138,15 @@ class LanguageManager: ObservableObject {
         "footprint.stat.planning": [.english: "In Planning", .simplifiedChinese: "筹划当中"],
         "footprint.section.distribution": [.english: "Travel Distribution", .simplifiedChinese: "旅行类型图谱"],
         "footprints.section.recent": [.english: "Recent Milestones", .simplifiedChinese: "最近的里程碑"],
+        "footprint.more_types": [.english: "More Types", .simplifiedChinese: "更多类型"],
+        "footprint.stat.journeys_short": [.english: "Journeys", .simplifiedChinese: "旅程"],
+        "footprint.stat.visited_short": [.english: "Visited", .simplifiedChinese: "去过"],
+
+        "live.activity.start": [.english: "Start Live Tracker", .simplifiedChinese: "开启实时追踪"],
+        "live.activity.stop": [.english: "Stop Live Tracker", .simplifiedChinese: "关闭实时追踪"],
+        "live.activity.active": [.english: "Live Tracker Active", .simplifiedChinese: "实时追踪中"],
+        "footprint.stat.photos_short": [.english: "Photos", .simplifiedChinese: "相册"],
+        "footprint.stat.planning_short": [.english: "Planning", .simplifiedChinese: "策划"],
 
         // Footprints Stats (Legacy/Alt)
         "footprints.title": [.english: "Footprint Review", .simplifiedChinese: "足迹回顾"],
@@ -92,12 +158,48 @@ class LanguageManager: ObservableObject {
         "inspiration.title": [.english: "Inspiration Plaza", .simplifiedChinese: "灵感广场"],
         "inspiration.header": [.english: "Discover the World", .simplifiedChinese: "探索世界"],
         "inspiration.subtitle": [.english: "Curated experiences from the global architecture.", .simplifiedChinese: "来自全球旅行者的精选体验。"],
+        "luggage.action.save_as_template": [.english: "Save as Template", .simplifiedChinese: "保存为模板"],
+        "luggage.action.apply_template": [.english: "Apply Template", .simplifiedChinese: "应用模板"],
+        "luggage.action.copy_from_trip": [.english: "Copy from Previous Trip", .simplifiedChinese: "从历史旅行引用"],
+        "luggage.title.template_library": [.english: "Template Library", .simplifiedChinese: "模版库"],
+        "luggage.title.trip_history": [.english: "Trip History", .simplifiedChinese: "历史旅行"],
+        "luggage.placeholder.template_name": [.english: "Template Name (e.g. Summer Beach)", .simplifiedChinese: "模板名称（例如：夏季海滩）"],
+        "luggage.alert.save_template_success": [.english: "Template saved successfully", .simplifiedChinese: "模板保存成功"],
+        "luggage.alert.apply_success": [.english: "Items added successfully", .simplifiedChinese: "清单项目已添加"],
+        "luggage.empty.templates": [.english: "No templates yet", .simplifiedChinese: "暂无自定义模板"],
+
         "discover.card.remix": [.english: "Remix This Trip", .simplifiedChinese: "复刻这段旅程"],
+        "inspiration.loading": [.english: "Loading inspirations...", .simplifiedChinese: "正在加载灵感..."],
+        "inspiration.section.featured": [.english: "Editor's Pick", .simplifiedChinese: "编辑精选"],
+        "inspiration.section.community": [.english: "Community Inspiration", .simplifiedChinese: "社区灵感"],
+        "inspiration.badge.featured": [.english: "Featured", .simplifiedChinese: "精选推荐"],
+        "inspiration.badge.new": [.english: "NEW", .simplifiedChinese: "NEW"],
+        "inspiration.badge.developing": [.english: "Developing", .simplifiedChinese: "开发中"],
+        "inspiration.empty.title": [.english: "No community content yet", .simplifiedChinese: "还没有社区内容"],
+        "inspiration.empty.subtitle": [.english: "Be the first traveler to share your journey", .simplifiedChinese: "成为第一个分享旅程的旅行者"],
+        "inspiration.collab.title": [.english: "Collaboration", .simplifiedChinese: "同行协作"],
+        "inspiration.collab.desc": [.english: "Invite companions to edit and sync footprints in real-time", .simplifiedChinese: "邀请旅伴共同编辑行程，实时同步足迹"],
+        "inspiration.reroute.title": [.english: "Dynamic Re-routing", .simplifiedChinese: "动态重路由"],
+        "inspiration.reroute.desc": [.english: "AI senses weather and stamina to intelligently adjust routes", .simplifiedChinese: "AI 实时感知天气与体力，智能调整行程路线"],
+
+        "inspiration.cat.featured": [.english: "Featured", .simplifiedChinese: "精选"],
+        "inspiration.cat.nature": [.english: "Nature", .simplifiedChinese: "自然风光"],
+        "inspiration.cat.culture": [.english: "Culture", .simplifiedChinese: "人文探索"],
+        "inspiration.cat.food": [.english: "Food", .simplifiedChinese: "美食之旅"],
+        "inspiration.cat.all": [.english: "All", .simplifiedChinese: "全部"],
+
+        "inspiration.tag.nature": [.english: "Nature", .simplifiedChinese: "自然风光"],
+        "inspiration.tag.culture": [.english: "Culture", .simplifiedChinese: "人文历史"],
+        "inspiration.tag.food": [.english: "Gourmet", .simplifiedChinese: "美食探索"],
+
+        "inspiration.stat.likes": [.english: "likes", .simplifiedChinese: "喜欢"],
 
         // Travel Detail
         "detail.itinerary.title": [.english: "The Itinerary", .simplifiedChinese: "行程规划"],
         "detail.itinerary.empty": [.english: "No daily plans yet.", .simplifiedChinese: "暂无每日计划"],
         "detail.archive.title": [.english: "Highlights & Archive", .simplifiedChinese: "高光时刻与存档"],
+        "detail.archive.view_all": [.english: "View All", .simplifiedChinese: "查看全部"],
+        "selected.count": [.english: "Selected", .simplifiedChinese: "已选择"],
         "detail.packing.title": [.english: "Packing Matrix", .simplifiedChinese: "行李清单"],
         "detail.packing.prepared": [.english: "Prepared", .simplifiedChinese: "已准备"],
         "detail.menu.add_day": [.english: "Add Day", .simplifiedChinese: "添加日程"],
@@ -313,6 +415,96 @@ class LanguageManager: ObservableObject {
         "settings.about.philosophy.text": [.english: "TravelPin is not just a notebook — it's the Director's Cut of your travels. We believe every journey deserves to be remembered with cinematic beauty, not as scattered data points.\n\nTo Explore, To Experience, To Exist.", .simplifiedChinese: "TravelPin 不仅仅是记事本，它是你旅行的导演剪辑版。我们相信每一段旅程都值得用电影般的唯美来铭记，而非散落的数据碎片。\n\n去探索，去体验，去存在。"],
         "settings.about.made_with": [.english: "Crafted with care for wanderers.", .simplifiedChinese: "为每一位行者，精心打造。"],
 
+        // Splash
+        "splash.tagline": [.english: "Footprints connected, exploration infinite", .simplifiedChinese: "足迹相连，便是探索无限"],
+
+        // Onboarding
+        "onboarding.welcome.title": [.english: "Welcome to TravelPin", .simplifiedChinese: "欢迎来到 TravelPin"],
+        "onboarding.welcome.subtitle": [.english: "Capture every moment.\nYour footprints, an eternal story.", .simplifiedChinese: "记录旅途中的每一个瞬间\n让足迹变成永恒的故事"],
+        "onboarding.feature.map.title": [.english: "Interactive Map", .simplifiedChinese: "交互式地图"],
+        "onboarding.feature.map.desc": [.english: "Precise positioning offline", .simplifiedChinese: "离线也能精准定位"],
+        "onboarding.feature.ai.title": [.english: "AI Journal", .simplifiedChinese: "AI 游记"],
+        "onboarding.feature.ai.desc": [.english: "Generate essays with one click", .simplifiedChinese: "一键生成文学随笔"],
+        "onboarding.feature.poster.title": [.english: "Cinematic Poster", .simplifiedChinese: "电影感海报"],
+        "onboarding.feature.poster.desc": [.english: "Exquisite layout for sharing", .simplifiedChinese: "精美排版一键分享"],
+
+        "onboarding.name.title": [.english: "Name Your Journey", .simplifiedChinese: "为旅程命名"],
+        "onboarding.name.subtitle": [.english: "Give your first destination a name", .simplifiedChinese: "给第一个目的地起个名字吧"],
+        "onboarding.name.placeholder": [.english: "e.g. Kamakura Escape", .simplifiedChinese: "例如：镰仓避世之旅"],
+        "onboarding.name.typeLabel": [.english: "Select Travel Type", .simplifiedChinese: "选择旅行类型"],
+
+        "onboarding.date.title": [.english: "Plan Your Departure", .simplifiedChinese: "计划出发时间"],
+        "onboarding.date.subtitle": [.english: "You can always change it later", .simplifiedChinese: "不确定也没关系，随时可以修改"],
+        "onboarding.date.start": [.english: "Departure Date", .simplifiedChinese: "出发日期"],
+        "onboarding.date.end": [.english: "Return Date", .simplifiedChinese: "返回日期"],
+
+        "onboarding.ready.title": [.english: "Ready to Explore", .simplifiedChinese: "准备就绪"],
+        "onboarding.ready.subtitle": [.english: "Your first journey is about to begin", .simplifiedChinese: "你的第一个旅程即将开始"],
+        "onboarding.ready.destination": [.english: "Destination", .simplifiedChinese: "目的地"],
+        "onboarding.ready.type": [.english: "Type", .simplifiedChinese: "类型"],
+        "onboarding.ready.date": [.english: "Date", .simplifiedChinese: "日期"],
+        "onboarding.ready.unnamed": [.english: "Unnamed Journey", .simplifiedChinese: "未命名旅程"],
+
+        "onboarding.action.next": [.english: "Next", .simplifiedChinese: "下一步"],
+        "onboarding.action.back": [.english: "Back", .simplifiedChinese: "上一步"],
+        "onboarding.action.start": [.english: "Start Journey", .simplifiedChinese: "开始旅程"],
+        "onboarding.default.name": [.english: "My First Journey", .simplifiedChinese: "第一次旅行"],
+
+        // Workflow Steps
+        "workflow.stage1.step1": [.english: "Trip Creation", .simplifiedChinese: "旅行创建"],
+        "workflow.stage1.step2": [.english: "Spot Collection", .simplifiedChinese: "景点收集"],
+        "workflow.stage1.step3": [.english: "Itinerary", .simplifiedChinese: "行程安排"],
+        "workflow.stage1.step4": [.english: "Packing", .simplifiedChinese: "行李准备"],
+        "workflow.stage1.step5": [.english: "Departure", .simplifiedChinese: "出发"],
+        
+        "workflow.stage2.step1": [.english: "View Plans", .simplifiedChinese: "查看行程"],
+        "workflow.stage2.step2": [.english: "Check-in", .simplifiedChinese: "景点打卡"],
+        "workflow.stage2.step3": [.english: "Photo Log", .simplifiedChinese: "照片记录"],
+        "workflow.stage2.step4": [.english: "Status Update", .simplifiedChinese: "状态更新"],
+        "workflow.stage2.step5": [.english: "Notes", .simplifiedChinese: "体验备注"],
+        
+        "workflow.stage3.step1": [.english: "Stats", .simplifiedChinese: "足迹统计"],
+        "workflow.stage3.step2": [.english: "Photo Archive", .simplifiedChinese: "照片整理"],
+        "workflow.stage3.step3": [.english: "Memoirs", .simplifiedChinese: "回忆分享"],
+        "workflow.stage3.step4": [.english: "Review", .simplifiedChinese: "经验总结"],
+        "workflow.stage3.step5": [.english: "Next Plan", .simplifiedChinese: "下次规划"],
+
+        // Detail View
+        "detail.menu.edit_trip": [.english: "Edit Journey", .simplifiedChinese: "编辑旅程"],
+        "detail.menu.view_map": [.english: "View Map", .simplifiedChinese: "查看地图"],
+        "detail.menu.publish": [.english: "Publish to Plaza", .simplifiedChinese: "发布到灵感广场"],
+        "detail.menu.collaborate": [.english: "Collaborate", .simplifiedChinese: "同行协作"],
+        "detail.menu.activity": [.english: "Activity", .simplifiedChinese: "协作动态"],
+        "detail.action.add_day": [.english: "Add Day %d", .simplifiedChinese: "添加第 %d 天"],
+        "detail.action.add_first_day": [.english: "Add First Day", .simplifiedChinese: "添加第一天"],
+        "detail.action.add_spot": [.english: "Add Spot", .simplifiedChinese: "添加地点"],
+        "detail.archive.empty": [.english: "No highlights yet", .simplifiedChinese: "暂无高光时刻"],
+        "detail.packing.status": [.english: "%1$d/%2$d Prepared", .simplifiedChinese: "%1$d/%2$d 已准备"],
+        "detail.spot.map_overview": [.english: "Map Overview", .simplifiedChinese: "地图概览"],
+        "detail.spot.atmosphere": [.english: "Atmosphere & Impression", .simplifiedChinese: "氛围与印象"],
+        "poster.design.dots": [.english: " · ", .simplifiedChinese: " · "],
+        "poster.type.tourism": [.english: "✈️ Tourism", .simplifiedChinese: "✈️ 出游"],
+        "poster.type.concert": [.english: "🎵 Concert", .simplifiedChinese: "🎵 演唱会"],
+        "poster.type.chill": [.english: "🏖 Chill", .simplifiedChinese: "🏖 散心"],
+        "poster.type.business": [.english: "💼 Business", .simplifiedChinese: "💼 出差"],
+        "poster.type.other": [.english: "🗺 Travel", .simplifiedChinese: "🗺 旅行"],
+
+        "add.spot.status.locating": [.english: "Locating...", .simplifiedChinese: "正在定位..."],
+        "add.spot.status.locked": [.english: "Location Locked", .simplifiedChinese: "位置已锁定"],
+        "add.spot.status.failed": [.english: "Unrecognized, edit later", .simplifiedChinese: "未能识别，可稍后编辑坐标"],
+        
+        "common.error.network": [.english: "Network error, please check connection", .simplifiedChinese: "网络错误，请检查连接"],
+        "ai.error.offline": [.english: "AI features require network connection", .simplifiedChinese: "AI 功能需要网络连接"],
+        "map.error.offline": [.english: "Map features require network connection", .simplifiedChinese: "地图功能需要网络连接"],
+
+        "map.status.offline": [.english: "Offline", .simplifiedChinese: "离线"],
+        "map.alert.download_success.title": [.english: "Map Downloaded", .simplifiedChinese: "地图已下载"],
+        "map.alert.download_success.message": [.english: "Cached %1$d map tiles (%2$@), available offline.", .simplifiedChinese: "已缓存 %1$d 个地图瓦片 (%2$@)，可离线使用"],
+        "map.alert.clear_cache.title": [.english: "Clear Offline Map Cache?", .simplifiedChinese: "清除离线地图缓存？"],
+        "map.alert.clear_cache.message": [.english: "This will delete all downloaded map tiles (%@).", .simplifiedChinese: "将删除所有已下载的地图瓦片 (%@)"],
+        "map.action.clear": [.english: "Clear Cache", .simplifiedChinese: "清除缓存"],
+        "map.action.all": [.english: "All", .simplifiedChinese: "全部"],
+
         // Settings — About (section keys)
         "settings.about": [.english: "About", .simplifiedChinese: "关于"],
         "settings.about.quote": [.english: "To Explore, To Experience, To Exist.", .simplifiedChinese: "去探索，去体验，去存在。"]
@@ -323,6 +515,30 @@ class LanguageManager: ObservableObject {
 public extension Text {
     init(locKey: String) {
         self.init(LanguageManager.shared.localizedString(for: locKey))
+    }
+}
+
+public extension Button where Label == Text {
+    init(locKey: String, action: @escaping () -> Void) {
+        self.init(action: action) {
+            Text(locKey: locKey)
+        }
+    }
+}
+
+public extension Label where Title == Text, Icon == Image {
+    init(locKey: String, systemImage: String) {
+        self.init {
+            Text(locKey: locKey)
+        } icon: {
+            Image(systemName: systemImage)
+        }
+    }
+}
+
+public extension View {
+    func navigationTitle(locKey: String) -> some View {
+        self.navigationTitle(Text(locKey: locKey))
     }
 }
 

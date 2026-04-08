@@ -45,6 +45,17 @@ final class Travel {
     /// Names of travel companions (freeform strings, not references).
     var companionNames: [String] = []
 
+    // MARK: Social & Collaboration
+
+    /// Whether this trip has been published to the Inspiration Plaza.
+    var isPublic: Bool = false
+
+    /// Anonymous user IDs of collaborators who can edit this trip.
+    var collaboratorIds: [String] = []
+
+    /// The Supabase user ID of the trip owner. Nil for locally-created trips not yet synced.
+    var ownerId: String?
+
     // MARK: Relationships (Cascade Ownership)
 
     /// Day-by-day route segments. Each itinerary optionally groups spots via `Spot.itinerary`.

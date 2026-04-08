@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import ActivityKit
 
 struct TravelDetailView: View {
     @Bindable var travel: Travel
@@ -7,8 +8,12 @@ struct TravelDetailView: View {
 
     @State private var showingAddItinerary = false
     @State private var showingAddSpot = false
-    @State private var showingAIGeneration = false // Renamed to match existing AIGenerationView
+    @State private var showingAIGeneration = false
     @State private var showingEditTravel = false
+    @State private var showingPublishSheet = false
+    @State private var showingCollaborators = false
+    @State private var showingCollabActivity = false
+    @State private var showingPhotoGallery = false
 
     @State private var editingSpot: Spot? = nil
     @State private var editingItinerary: Itinerary? = nil
@@ -79,11 +84,23 @@ struct TravelDetailView: View {
         .sheet(isPresented: $showingEditTravel) {
             EditTravelView(travel: travel)
         }
-        .sheet(item: $editingSpot) { spot in
+        .fullScreenCover(isPresented: $showingPhotoGallery) {
+            PhotoGalleryView(travel: travel)
+        }
+        .fullScreenCover(item: $editingSpot) { spot in
             EditSpotView(spot: spot, travel: travel)
         }
         .sheet(item: $editingItinerary) { itinerary in
             EditItineraryView(itinerary: itinerary)
+        }
+        .sheet(isPresented: $showingPublishSheet) {
+            PublishTripView(travel: travel)
+        }
+        .sheet(isPresented: $showingCollaborators) {
+            CollaboratorListView(travel: travel)
+        }
+        .sheet(isPresented: $showingCollabActivity) {
+            CollaborationActivityView()
         }
     }
 
@@ -113,7 +130,7 @@ struct TravelDetailView: View {
                     ZStack {
                         LinearGradient(
                             stops: [
-                                .init(color: .white, location: 0),
+                                .init(color: TPDesign.background, location: 0),
                                 .init(color: TPDesign.celestialBlue.opacity(0.3), location: 0.5),
                                 .init(color: TPDesign.celestialBlue, location: 1.0)
                             ],
@@ -139,7 +156,7 @@ struct TravelDetailView: View {
                 
                 HStack(spacing: 12) {
                     Label(travel.startDate.formatted(.dateTime.month().day()) + " - " + travel.endDate.formatted(.dateTime.day().month().year()), systemImage: "calendar")
-                    Label("\(travel.itineraries.count) Days", systemImage: "clock")
+                    Label("\(travel.itineraries.count)\("dashboard.recent.days_suffix".localized)", systemImage: "clock")
                 }
                 .font(TPDesign.captionFont())
                 .foregroundStyle(.white.opacity(0.9))
@@ -156,14 +173,26 @@ struct TravelDetailView: View {
     private var appMenu: some View {
         Menu {
             Button(action: { showingEditTravel = true }) {
-                Label("编辑旅程", systemImage: "pencil")
+                Label("detail.menu.edit_trip".localized, systemImage: "pencil")
             }
             Divider()
             NavigationLink(destination: TravelMapView(travel: travel)) {
-                Label("查看地图", systemImage: "map")
+                Label("detail.menu.view_map".localized, systemImage: "map")
             }
             NavigationLink(destination: LuggageView(travel: travel)) {
-                Label("行李清单", systemImage: "bag")
+                Label("detail.menu.luggage".localized, systemImage: "bag")
+            }
+            Divider()
+            Button(action: { showingPublishSheet = true }) {
+                Label("detail.menu.publish".localized, systemImage: "paperplane")
+            }
+            Button(action: { showingCollaborators = true }) {
+                Label("detail.menu.collaborate".localized, systemImage: "person.2")
+            }
+            if realtime.isConnected {
+                Button(action: { showingCollabActivity = true }) {
+                    Label("detail.menu.activity".localized, systemImage: "clock.arrow.circlepath")
+                }
             }
         } label: {
             Image(systemName: "ellipsis.circle")
@@ -171,133 +200,174 @@ struct TravelDetailView: View {
                 .foregroundStyle(TPDesign.obsidian)
         }
     }
-
     private var itinerarySection: some View {
         VStack(alignment: .leading, spacing: 24) {
+            itineraryHeader
+            
+            if travel.itineraries.isEmpty {
+                emptyItineraryView
+            } else {
+                itineraryListView
+            }
+        }
+        .cinematicFadeIn(delay: 0.2)
+    }
+
+    private var itineraryHeader: some View {
+        HStack(alignment: .bottom) {
+            Text(locKey: "detail.itinerary.title")
+                .font(TPDesign.editorialSerif(28))
+                .foregroundStyle(TPDesign.obsidian)
+            
+            Spacer()
+            
+            Button {
+                TPHaptic.notification(.success)
+                showingAIGeneration.toggle()
+            } label: {
+                Image(systemName: "wand.and.stars.inverse")
+                    .font(.system(size: 20))
+                    .foregroundStyle(Color.tpAccent)
+                    .padding(8)
+                    .background(Circle().fill(Color.tpAccent.opacity(0.1)))
+            }
+            .offset(y: 4)
+        }
+        .padding(.horizontal, 24)
+    }
+
+    private var emptyItineraryView: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Text(locKey: "detail.itinerary.empty")
+                .font(TPDesign.bodyFont())
+                .foregroundStyle(TPDesign.textTertiary)
+            
+            Button {
+                showingAddItinerary.toggle()
+            } label: {
+                Label("detail.action.add_first_day".localized, systemImage: "plus.circle.fill")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(Color.tpAccent)
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 16)
+                    .background(Color.tpAccent.opacity(0.1))
+                    .clipShape(Capsule())
+            }
+        }
+        .padding(.horizontal, 24)
+    }
+
+    private var itineraryListView: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            let sortedItineraries = travel.itineraries.sorted(by: { $0.day < $1.day })
+            ForEach(Array(sortedItineraries.enumerated()), id: \.element.persistentModelID) { index, itinerary in
+                ItineraryRow(
+                    travel: travel,
+                    itinerary: itinerary,
+                    isLast: index == sortedItineraries.count - 1,
+                    onEdit: { editingItinerary = itinerary },
+                    onAddSpot: {
+                        preselectedItineraryForSpot = itinerary
+                        showingAddSpot.toggle()
+                    },
+                    onEditSpot: { spot in
+                        editingSpot = spot
+                    },
+                    onToggleComplete: {
+                        TPHaptic.notification(itinerary.isCompleted ? .warning : .success)
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                            itinerary.isCompleted.toggle()
+                            try? modelContext.save()
+                        }
+                        if itinerary.isCompleted {
+                            LiveActivityManager.shared.endAllActivities()
+                        }
+                    },
+                    onToggleLive: {
+                        TPHaptic.mechanicalPress()
+                        if Activity<ItineraryActivityAttributes>.activities.contains(where: { $0.attributes.dayNumber == itinerary.day }) {
+                            LiveActivityManager.shared.endAllActivities()
+                        } else {
+                            LiveActivityManager.shared.startItineraryActivity(travel: travel, itinerary: itinerary)
+                        }
+                    },
+                    isLiveAvailable: true,
+                    isLiveRunning: Activity<ItineraryActivityAttributes>.activities.contains(where: { $0.attributes.dayNumber == itinerary.day })
+                )
+            }
+                    
+            HStack(alignment: .center, spacing: 16) {
+                VStack(spacing: 0) {
+                    Rectangle()
+                        .fill(Color.tpAccent.opacity(0.6))
+                        .frame(width: 2, height: 16)
+
+                    Button {
+                        TPHaptic.selection()
+                        showingAddItinerary.toggle()
+                    } label: {
+                        ZStack {
+                            Circle()
+                                .fill(TPDesign.secondaryBackground)
+                                .frame(width: 28, height: 28)
+                            Circle()
+                                .strokeBorder(Color.tpAccent.opacity(0.5), style: StrokeStyle(lineWidth: 1.5, dash: [4]))
+                                .frame(width: 28, height: 28)
+                            Image(systemName: "plus")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundStyle(Color.tpAccent)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Rectangle()
+                        .fill(LinearGradient(colors: [Color.tpAccent.opacity(0.3), .clear], startPoint: .top, endPoint: .bottom))
+                        .frame(width: 2, height: 24)
+                }
+                .frame(width: 28)
+                
+                Button {
+                    TPHaptic.mechanicalPress()
+                    showingAddItinerary.toggle()
+                } label: {
+                    Text(String(format: "detail.action.add_day".localized, travel.itineraries.count + 1))
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(Color.tpAccent)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 16)
+                        .background(Color.tpAccent.opacity(0.08))
+                        .clipShape(Capsule())
+                        .overlay(Capsule().stroke(Color.tpAccent.opacity(0.2), lineWidth: 1))
+                }
+                .padding(.bottom, 8)
+            }
+            .padding(.horizontal, 24)
+        }
+    }
+
+    private var spotArchiveSection: some View {
+        VStack(alignment: .leading, spacing: 20) {
             HStack(alignment: .bottom) {
-                Text(locKey: "detail.itinerary.title")
+                Text(locKey: "detail.archive.title")
                     .font(TPDesign.editorialSerif(28))
                     .foregroundStyle(TPDesign.obsidian)
                 
                 Spacer()
                 
                 Button {
-                    TPHaptic.notification(.success)
-                    showingAIGeneration.toggle()
+                    TPHaptic.selection()
+                    showingPhotoGallery = true
                 } label: {
-                    Image(systemName: "wand.and.stars.inverse")
-                        .font(.system(size: 20))
+                    Text(locKey: "detail.archive.view_all")
+                        .font(TPDesign.bodyFont(13, weight: .bold))
                         .foregroundStyle(Color.tpAccent)
-                        .padding(8)
-                        .background(Circle().fill(Color.tpAccent.opacity(0.1)))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color.tpAccent.opacity(0.1))
+                        .clipShape(Capsule())
                 }
-                .offset(y: 4)
             }
             .padding(.horizontal, 24)
-
-            if travel.itineraries.isEmpty {
-                VStack(alignment: .leading, spacing: 20) {
-                    Text(locKey: "detail.itinerary.empty")
-                        .font(TPDesign.bodyFont())
-                        .foregroundStyle(TPDesign.textTertiary)
-                    
-                    Button {
-                        showingAddItinerary.toggle()
-                    } label: {
-                        Label("添加第一天", systemImage: "plus.circle.fill")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundStyle(Color.tpAccent)
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 16)
-                            .background(Color.tpAccent.opacity(0.1))
-                            .clipShape(Capsule())
-                    }
-                }
-                .padding(.horizontal, 24)
-            } else {
-                VStack(alignment: .leading, spacing: 0) {
-                    let sortedItineraries = travel.itineraries.sorted(by: { $0.day < $1.day })
-                    ForEach(Array(sortedItineraries.enumerated()), id: \.element.persistentModelID) { index, itinerary in
-                        ItineraryRow(
-                            travel: travel,
-                            itinerary: itinerary,
-                            isLast: index == sortedItineraries.count - 1,
-                            onEdit: { editingItinerary = itinerary },
-                            onAddSpot: {
-                                preselectedItineraryForSpot = itinerary
-                                showingAddSpot.toggle()
-                            },
-                            onEditSpot: { spot in
-                                editingSpot = spot
-                            },
-                            onToggleComplete: {
-                                TPHaptic.notification(itinerary.isCompleted ? .warning : .success)
-                                withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                                    itinerary.isCompleted.toggle()
-                                    try? modelContext.save()
-                                }
-                            }
-                        )
-                    }
-                    
-                    HStack(alignment: .center, spacing: 16) {
-                        VStack(spacing: 0) {
-                            Rectangle()
-                                .fill(Color.tpAccent.opacity(0.6))
-                                .frame(width: 2, height: 16)
-
-                            Button {
-                                TPHaptic.selection()
-                                showingAddItinerary.toggle()
-                            } label: {
-                                ZStack {
-                                    Circle()
-                                        .fill(Color.white)
-                                        .frame(width: 28, height: 28)
-                                    Circle()
-                                        .strokeBorder(Color.tpAccent.opacity(0.5), style: StrokeStyle(lineWidth: 1.5, dash: [4]))
-                                        .frame(width: 28, height: 28)
-                                    Image(systemName: "plus")
-                                        .font(.system(size: 13, weight: .bold))
-                                        .foregroundStyle(Color.tpAccent)
-                                }
-                            }
-                            .buttonStyle(.plain)
-                            
-                            Rectangle()
-                                .fill(LinearGradient(colors: [Color.tpAccent.opacity(0.3), .clear], startPoint: .top, endPoint: .bottom))
-                                .frame(width: 2, height: 24)
-                        }
-                        .frame(width: 28)
-                        
-                        Button {
-                            TPHaptic.mechanicalPress()
-                            showingAddItinerary.toggle()
-                        } label: {
-                            Text("添加第 \(travel.itineraries.count + 1) 天")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundStyle(Color.tpAccent)
-                                .padding(.vertical, 8)
-                                .padding(.horizontal, 16)
-                                .background(Color.tpAccent.opacity(0.08))
-                                .clipShape(Capsule())
-                                .overlay(Capsule().stroke(Color.tpAccent.opacity(0.2), lineWidth: 1))
-                        }
-                        .padding(.bottom, 8)
-                    }
-                    .padding(.horizontal, 24)
-                }
-            }
-        }
-        .cinematicFadeIn(delay: 0.3)
-    }
-
-    private var spotArchiveSection: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text(locKey: "detail.archive.title")
-                .font(TPDesign.editorialSerif(28))
-                .foregroundStyle(TPDesign.obsidian)
-                .padding(.horizontal, 24)
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 20) {
@@ -314,7 +384,7 @@ struct TravelDetailView: View {
                     }.filter { !$0.photos.isEmpty || $0.mapSnapshot != nil }
                     
                     if uniqueSpots.isEmpty {
-                        Text("暂无高光时刻")
+                        Text(locKey: "detail.archive.empty")
                             .font(TPDesign.bodyFont(14))
                             .foregroundStyle(TPDesign.textTertiary)
                             .padding(.vertical, 20)
@@ -341,7 +411,7 @@ struct TravelDetailView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(locKey: "detail.packing.title")
                         .font(TPDesign.editorialSerif(22))
-                    Text("\(travel.luggageItems.filter { $0.isChecked }.count)/\(travel.luggageItems.count) 已准备")
+                    Text(String(format: "detail.packing.status".localized, travel.luggageItems.filter { $0.isChecked }.count, travel.luggageItems.count))
                         .font(TPDesign.bodyFont(14))
                         .foregroundStyle(.secondary)
                 }
@@ -371,6 +441,9 @@ struct ItineraryRow: View {
     var onAddSpot: () -> Void
     var onEditSpot: (Spot) -> Void
     var onToggleComplete: () -> Void
+    var onToggleLive: () -> Void
+    var isLiveAvailable: Bool
+    var isLiveRunning: Bool
 
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
@@ -378,7 +451,7 @@ struct ItineraryRow: View {
                 Button(action: onToggleComplete) {
                     ZStack {
                         Circle()
-                            .fill(itinerary.isCompleted ? Color.tpAccent : Color.white)
+                            .fill(itinerary.isCompleted ? Color.tpAccent : TPDesign.secondaryBackground)
                             .frame(width: 28, height: 28)
                             .shadow(color: (itinerary.isCompleted ? Color.tpAccent : Color.tpAccent).opacity(0.15), radius: 6, x: 0, y: 3)
                         Circle()
@@ -414,6 +487,27 @@ struct ItineraryRow: View {
                         Image(systemName: "pencil")
                             .font(.system(size: 10))
                             .foregroundStyle(.tertiary)
+                        
+                        Spacer()
+                        
+                        // Live Activity Toggle
+                        if isLiveAvailable {
+                            Button(action: onToggleLive) {
+                                HStack(spacing: 4) {
+                                    Circle()
+                                        .fill(isLiveRunning ? Color.green : Color.tpAccent)
+                                        .frame(width: 6, height: 6)
+                                        .opacity(isLiveRunning ? 1 : 0.6)
+                                    Text(isLiveRunning ? "live.activity.active".localized : "live.activity.start".localized)
+                                        .font(.system(size: 10, weight: .black))
+                                }
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
+                                .background(Capsule().fill(isLiveRunning ? Color.green.opacity(0.1) : Color.tpAccent.opacity(0.05)))
+                                .foregroundStyle(isLiveRunning ? Color.green : Color.tpAccent)
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
                 }
                 .buttonStyle(.plain)
@@ -444,7 +538,7 @@ struct ItineraryRow: View {
                     Button(action: onAddSpot) {
                         HStack(spacing: 6) {
                             Image(systemName: "plus.circle.fill")
-                            Text("添加地点")
+                            Text(locKey: "detail.action.add_spot")
                         }
                         .font(.system(size: 12, weight: .bold))
                         .foregroundStyle(Color.tpAccent)
@@ -535,7 +629,7 @@ struct ImmersiveSpotDetailView: View {
                                         VStack {
                                             Spacer()
                                             HStack {
-                                                Label("地图概览", systemImage: "map.fill")
+                                                Label("detail.spot.map_overview".localized, systemImage: "map.fill")
                                                     .font(.system(size: 10, weight: .bold))
                                                     .foregroundStyle(.white)
                                                     .padding(.horizontal, 10).padding(.vertical, 5)
@@ -587,17 +681,17 @@ struct ImmersiveSpotDetailView: View {
                             VStack(alignment: .leading, spacing: 14) {
                                 HStack {
                                     Rectangle().fill(Color.tpAccent).frame(width: 4, height: 16)
-                                    Text("氛围与印象").font(TPDesign.overline()).foregroundStyle(.secondary)
+                                    Text(locKey: "detail.spot.atmosphere").font(TPDesign.overline()).foregroundStyle(.secondary)
                                 }
                                 Text(spot.notes).font(TPDesign.bodyFont(18)).foregroundStyle(.white.opacity(0.9)).lineSpacing(10)
                             }
-                            .padding(24).background(Color.white.opacity(0.05)).clipShape(RoundedRectangle(cornerRadius: 24))
-                            .overlay(RoundedRectangle(cornerRadius: 24).stroke(.white.opacity(0.1), lineWidth: 0.5))
+                            .padding(24).background(TPDesign.secondaryBackground.opacity(0.1)).clipShape(RoundedRectangle(cornerRadius: 24))
+                            .overlay(RoundedRectangle(cornerRadius: 24).stroke(TPDesign.obsidian.opacity(0.1), lineWidth: 0.5))
                         }
                         
                         if let snapshot = spot.mapSnapshot, let uiImage = UIImage(data: snapshot) {
                             VStack(alignment: .leading, spacing: 14) {
-                                Text("地点指引").font(TPDesign.overline()).foregroundStyle(.secondary)
+                                Text(locKey: "detail.spot.guide").font(TPDesign.overline()).foregroundStyle(.secondary)
                                 Image(uiImage: uiImage).resizable().scaledToFill().frame(height: 120)
                                     .clipShape(RoundedRectangle(cornerRadius: 18))
                                     .overlay(RoundedRectangle(cornerRadius: 18).stroke(.white.opacity(0.2), lineWidth: 0.5))

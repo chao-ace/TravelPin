@@ -82,8 +82,9 @@ struct MainTabView: View {
             ZStack {
                 // High-luminance Crystal Glass Base
                 Capsule()
-                    .fill(Color.white.opacity(0.7))
-                    .blur(radius: 0.5)
+                    .fill(TPDesign.secondaryBackground.opacity(0.7))
+                    .background(.ultraThinMaterial)
+                    .clipShape(Capsule())
                 
                 // Subtle Dopamine Tint
                 Capsule()
@@ -100,7 +101,7 @@ struct MainTabView: View {
             Capsule()
                 .stroke(
                     LinearGradient(
-                        colors: [.white.opacity(0.35), .white.opacity(0.1)],
+                        colors: [TPDesign.obsidian.opacity(0.2), TPDesign.obsidian.opacity(0.05)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
@@ -108,6 +109,7 @@ struct MainTabView: View {
                 )
         )
         .shadowFloating()
+
         .padding(.horizontal, 24)
         .padding(.bottom, 8)
     }

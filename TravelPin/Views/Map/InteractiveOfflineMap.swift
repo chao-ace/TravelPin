@@ -78,6 +78,12 @@ struct InteractiveOfflineMap: UIViewRepresentable {
             return annotationView
         }
         
+        func mapView(_ mapView: MKMapView, didAdd views: [MKAnnotationView]) {
+            if !views.isEmpty {
+                TPHaptic.impact(.light)
+            }
+        }
+        
         func mapView(_ mapView: MKMapView, annotationView view: MKAnnotationView, calloutAccessoryControlTapped control: UIControl) {
             // Placeholder: Could trigger a notification or closure to navigate
             print("Tapped detail for: \(view.annotation?.title ?? "Unknown")")

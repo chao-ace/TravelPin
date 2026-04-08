@@ -23,7 +23,7 @@ struct FootprintReviewView: View {
             .padding(.top)
         }
         .background(TPDesign.background.ignoresSafeArea())
-        .navigationTitle("足迹回顾")
+        .navigationTitle("footprint.title".localized)
         .navigationBarTitleDisplayMode(.inline)
         .warmFilm(warmth: 0.05)
     }
@@ -61,7 +61,7 @@ struct FootprintReviewView: View {
             HStack(spacing: 12) {
                 NavigationLink(destination: StatDetailView(type: .journeys)) {
                     StatPill(
-                        title: "旅程",
+                        title: "footprint.stat.journeys_short".localized,
                         value: "\(travels.count)",
                         icon: "map.fill",
                         iconColor: TPDesign.celestialBlue
@@ -71,7 +71,7 @@ struct FootprintReviewView: View {
 
                 NavigationLink(destination: StatDetailView(type: .spots)) {
                     StatPill(
-                        title: "去过",
+                        title: "footprint.stat.visited_short".localized,
                         value: "\(spots.count)",
                         icon: "mappin.and.ellipse",
                         iconColor: TPDesign.warmAmber
@@ -81,7 +81,7 @@ struct FootprintReviewView: View {
 
                 NavigationLink(destination: StatDetailView(type: .photos)) {
                     StatPill(
-                        title: "相册",
+                        title: "footprint.stat.photos_short".localized,
                         value: "\(spots.reduce(0) { $0 + $1.photos.count })",
                         icon: "photo.stack",
                         iconColor: TPDesign.marineDeep
@@ -91,7 +91,7 @@ struct FootprintReviewView: View {
 
                 NavigationLink(destination: StatDetailView(type: .planning)) {
                     StatPill(
-                        title: "策划",
+                        title: "footprint.stat.planning_short".localized,
                         value: "\(travels.filter { $0.status == .planning }.count)",
                         icon: "pencil.and.outline",
                         iconColor: TPDesign.warmGold
@@ -137,11 +137,12 @@ struct FootprintReviewView: View {
             .padding(.vertical, 14)
             .background(
                 RoundedRectangle(cornerRadius: 20)
-                    .fill(Color.white.opacity(0.8))
+                    .fill(TPDesign.secondaryBackground.opacity(0.8))
                     .overlay(
                         RoundedRectangle(cornerRadius: 20)
-                            .stroke(.white.opacity(0.4), lineWidth: 0.5)
+                            .stroke(TPDesign.obsidian.opacity(0.1), lineWidth: 0.5)
                     )
+
             )
             .shadowSmall()
         }
@@ -220,7 +221,7 @@ struct FootprintReviewView: View {
                             }
                             .padding(.top, 12)
                         } label: {
-                            Text("更多类型")
+                            Text(locKey: "footprint.more_types")
                                 .font(TPDesign.captionFont())
                                 .foregroundStyle(TPDesign.textTertiary)
                         }
@@ -231,11 +232,12 @@ struct FootprintReviewView: View {
             .padding(24)
             .background(
                 RoundedRectangle(cornerRadius: 24)
-                    .fill(Color.white.opacity(0.8))
+                    .fill(TPDesign.secondaryBackground.opacity(0.8))
                     .overlay(
                         RoundedRectangle(cornerRadius: 24)
-                            .stroke(.white.opacity(0.4), lineWidth: 0.5)
+                            .stroke(TPDesign.obsidian.opacity(0.1), lineWidth: 0.5)
                     )
+
             )
             .shadowSmall()
         }

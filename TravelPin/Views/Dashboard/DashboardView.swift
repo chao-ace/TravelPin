@@ -51,7 +51,7 @@ struct DashboardView: View {
                                     if travels.count > 3 {
                                         NavigationLink(destination: TravelArchiveView(travels: travels)) {
                                             HStack {
-                                                Text("查看全部旅程")
+                                                Text(locKey: "dashboard.action.view_all")
                                                     .font(TPDesign.bodyFont(14, weight: .bold))
                                                 Image(systemName: "arrow.right")
                                                     .font(.system(size: 12, weight: .bold))
@@ -61,12 +61,14 @@ struct DashboardView: View {
                                             .padding(.horizontal, 24)
                                             .background(
                                                 RoundedRectangle(cornerRadius: TPDesign.radiusMedium)
-                                                    .fill(Color.white.opacity(0.95))
+                                                    .fill(TPDesign.secondaryBackground.opacity(0.95))
+                                                    .background(.ultraThinMaterial)
+                                                    .clipShape(RoundedRectangle(cornerRadius: TPDesign.radiusMedium))
                                                     .overlay(
                                                         RoundedRectangle(cornerRadius: TPDesign.radiusMedium)
                                                             .stroke(
                                                                 LinearGradient(
-                                                                    colors: [.white.opacity(0.8), .white.opacity(0.2)],
+                                                                    colors: [TPDesign.obsidian.opacity(0.1), TPDesign.obsidian.opacity(0.05)],
                                                                     startPoint: .topLeading,
                                                                     endPoint: .bottomTrailing
                                                                 ),
@@ -116,7 +118,7 @@ extension DashboardView {
         HStack {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(TPDesign.textTertiary)
-            TextField("搜索旅程名称、日期...", text: $searchText)
+            TextField("dashboard.search.placeholder".localized, text: $searchText)
                 .font(TPDesign.bodyFont(15))
             if !searchText.isEmpty {
                 Button { searchText = "" } label: {
@@ -129,7 +131,9 @@ extension DashboardView {
         .padding(.vertical, 12)
         .background(
             RoundedRectangle(cornerRadius: 14)
-                .fill(Color.white.opacity(0.9))
+                .fill(TPDesign.secondaryBackground.opacity(0.8))
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
                 .overlay(RoundedRectangle(cornerRadius: 14).stroke(TPDesign.divider, lineWidth: 0.5))
         )
     }
@@ -147,7 +151,7 @@ extension DashboardView {
                     Image(systemName: "doc.text.magnifyingglass")
                         .font(.largeTitle)
                         .foregroundStyle(TPDesign.textTertiary)
-                    Text("未找到相关旅程")
+                    Text(locKey: "dashboard.search.empty")
                         .font(TPDesign.bodyFont(16))
                         .foregroundStyle(TPDesign.textSecondary)
                 }
@@ -263,7 +267,7 @@ extension DashboardView {
                 )
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("近期旅程")
+                    Text(locKey: "dashboard.recent.title")
                         .font(.system(size: 10, weight: .black))
                         .tracking(2)
                         .foregroundStyle(hasPhoto ? .white.opacity(0.7) : TPDesign.textTertiary)
@@ -273,8 +277,8 @@ extension DashboardView {
                         .foregroundStyle(hasPhoto ? .white : TPDesign.obsidian)
 
                     HStack(spacing: 16) {
-                        Label("\(travel.durationDays)d", systemImage: "calendar")
-                        Label("\(travel.spots.count) spots", systemImage: "mappin")
+                        Label("\(travel.durationDays)\("dashboard.recent.days_suffix".localized)", systemImage: "calendar")
+                        Label("\(travel.spots.count)\("dashboard.recent.spots_suffix".localized)", systemImage: "mappin")
                     }
                     .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(hasPhoto ? .white.opacity(0.8) : TPDesign.textSecondary)
@@ -301,7 +305,7 @@ struct TravelArchiveView: View {
                     HStack {
                         Image(systemName: "magnifyingglass")
                             .foregroundStyle(TPDesign.textTertiary)
-                        TextField("在全部旅程中搜索...", text: $archiveSearchText)
+                        TextField("dashboard.archive.search.placeholder".localized, text: $archiveSearchText)
                             .font(TPDesign.bodyFont(15))
                     }
                     .padding(.horizontal, 16)
@@ -322,9 +326,9 @@ struct TravelArchiveView: View {
                     ForEach(grouped, id: \.key) { year, yearTravels in
                         VStack(alignment: .leading, spacing: 16) {
                             HStack {
-                                Text("\(year) 年")
-                                    .font(TPDesign.editorialSerif(22))
-                                    .foregroundStyle(TPDesign.obsidian)
+                        Text("\(String(year))\("dashboard.archive.year_suffix".localized)")
+                            .font(TPDesign.editorialSerif(22))
+                            .foregroundStyle(TPDesign.obsidian)
                                 Rectangle()
                                     .fill(TPDesign.divider)
                                     .frame(height: 1)
@@ -348,7 +352,7 @@ struct TravelArchiveView: View {
                 .padding(.vertical, 24)
             }
         }
-        .navigationTitle("全部旅程")
+        .navigationTitle("dashboard.archive.title".localized)
         .navigationBarTitleDisplayMode(.large)
     }
 }
@@ -440,9 +444,15 @@ struct WorkflowProgressSection: View {
     
     // Core Workflow Setup based on PRD / Docs
     let stages = [
-        (title: "旅行规划", icon: "map.fill", steps: ["旅行创建", "景点收集", "行程安排", "行李准备", "出发"]),
-        (title: "旅行执行", icon: "figure.walk", steps: ["查看行程", "景点打卡", "照片记录", "状态更新", "体验备注"]),
-        (title: "足迹回顾", icon: "photo.fill.on.rectangle.fill", steps: ["足迹统计", "照片整理", "回忆分享", "经验总结", "下次规划"])
+        (title: "dashboard.workflow.stage1".localized, icon: "map.fill", steps: [
+            "workflow.stage1.step1".localized, "workflow.stage1.step2".localized, "workflow.stage1.step3".localized, "workflow.stage1.step4".localized, "workflow.stage1.step5".localized
+        ]),
+        (title: "dashboard.workflow.stage2".localized, icon: "figure.walk", steps: [
+            "workflow.stage2.step1".localized, "workflow.stage2.step2".localized, "workflow.stage2.step3".localized, "workflow.stage2.step4".localized, "workflow.stage2.step5".localized
+        ]),
+        (title: "dashboard.workflow.stage3".localized, icon: "photo.fill.on.rectangle.fill", steps: [
+            "workflow.stage3.step1".localized, "workflow.stage3.step2".localized, "workflow.stage3.step3".localized, "workflow.stage3.step4".localized, "workflow.stage3.step5".localized
+        ])
     ]
     
     // Determine the current workflow stage
@@ -465,14 +475,14 @@ struct WorkflowProgressSection: View {
                         ZStack {
                             if isActive {
                                 Circle()
-                                    .stroke(Color.tpAccent, style: StrokeStyle(lineWidth: 2, dash: [4, 4]))
+                                    .stroke(Color.tpAccent, style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
                                     .frame(width: 52, height: 52)
                                     .rotationEffect(Angle(degrees: isAnimating ? 360 : 0))
-                                    .animation(.linear(duration: 8).repeatForever(autoreverses: false), value: isAnimating)
+                                    .animation(.linear(duration: 10).repeatForever(autoreverses: false), value: isAnimating)
                                     .onAppear { isAnimating = true }
                                 
                                 Circle()
-                                    .fill(Color.tpAccent.opacity(0.15))
+                                    .fill(Color.tpAccent.opacity(0.12))
                                     .frame(width: 42, height: 42)
                                     
                                 Image(systemName: stages[index].icon)
@@ -521,7 +531,7 @@ struct WorkflowProgressSection: View {
                 HStack(spacing: 6) {
                     Image(systemName: "arrow.triangle.branch")
                         .foregroundStyle(TPDesign.warmAmber)
-                    Text("\(stages[currentStage].title)指南")
+                    Text("\(stages[currentStage].title)\("dashboard.workflow.guide_suffix".localized)")
                         .font(TPDesign.bodyFont(14, weight: .bold))
                         .foregroundStyle(TPDesign.obsidian)
                 }
@@ -536,7 +546,7 @@ struct WorkflowProgressSection: View {
                                 .foregroundStyle(TPDesign.obsidian)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 8)
-                                .background(Color.white.opacity(0.8))
+                                .background(TPDesign.secondaryBackground.opacity(0.8))
                                 .clipShape(Capsule())
                                 .overlay(Capsule().stroke(TPDesign.divider, lineWidth: 0.5))
                             
@@ -553,7 +563,9 @@ struct WorkflowProgressSection: View {
             .padding(.vertical, 16)
             .background(
                 RoundedRectangle(cornerRadius: 20)
-                    .fill(Color.white.opacity(0.8))
+                    .fill(TPDesign.secondaryBackground.opacity(0.8))
+                    .background(.ultraThinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
                     .overlay(RoundedRectangle(cornerRadius: 20).stroke(TPDesign.divider, lineWidth: 0.5))
             )
             .padding(.horizontal, 20)

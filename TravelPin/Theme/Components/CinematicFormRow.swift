@@ -23,8 +23,9 @@ struct CinematicFormSection<Content: View>: View {
             .clipShape(RoundedRectangle(cornerRadius: TPDesign.radiusLarge))
             .overlay(
                 RoundedRectangle(cornerRadius: TPDesign.radiusLarge)
-                    .stroke(.white.opacity(0.25), lineWidth: 1)
+                    .stroke(TPDesign.obsidian.opacity(0.1), lineWidth: 1)
             )
+
             .shadowSmall()
         }
     }

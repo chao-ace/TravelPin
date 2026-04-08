@@ -53,21 +53,21 @@ struct AddSpotView: View {
                                         if isGeocoding {
                                             ProgressView()
                                                 .scaleEffect(0.7)
-                                            Text("正在定位...")
+                                            Text(locKey: "add.spot.status.locating")
                                                 .font(TPDesign.bodyFont(12))
                                                 .foregroundStyle(TPDesign.textTertiary)
                                         } else if locationConfirmed {
                                             Image(systemName: "checkmark.circle.fill")
                                                 .font(.system(size: 12))
                                                 .foregroundStyle(Color.tpAccent)
-                                            Text("位置已锁定")
+                                            Text(locKey: "add.spot.status.locked")
                                                 .font(TPDesign.bodyFont(12))
                                                 .foregroundStyle(Color.tpAccent)
                                         } else {
                                             Image(systemName: "location.slash")
                                                 .font(.system(size: 12))
                                                 .foregroundStyle(TPDesign.textTertiary)
-                                            Text("未能识别，可稍后编辑坐标")
+                                            Text(locKey: "add.spot.status.failed")
                                                 .font(TPDesign.bodyFont(12))
                                                 .foregroundStyle(TPDesign.textTertiary)
                                         }
@@ -243,6 +243,9 @@ struct AddSpotView: View {
                 selectedItinerary = pre
             }
         }
+        .onChange(of: name) { _, _ in
+            debounceGeocode()
+        }
     }
 
     private func loadPhotos(from items: [PhotosPickerItem]) {
@@ -266,6 +269,14 @@ struct AddSpotView: View {
         geocodeTask = Task {
             try? await Task.sleep(nanoseconds: 1_000_000_000) // 1s debounce
             guard !Task.isCancelled else { return }
+            
+            // Network Check
+            if !NetworkMonitor.shared.isConnected {
+                await MainActor.run {
+                    ToastManager.shared.show(type: .warning, message: "map.error.offline".localized)
+                }
+                return
+            }
             
             await MainActor.run { 
                 isGeocoding = true 

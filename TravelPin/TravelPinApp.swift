@@ -9,7 +9,13 @@ struct TravelPinApp: App {
             Itinerary.self,
             Spot.self,
             LuggageItem.self,
-            TravelPhoto.self
+            TravelPhoto.self,
+            PublishedTrip.self,
+            SocialInteraction.self,
+            CollaborationInvite.self,
+            CollaboratorProfile.self,
+            PackingTemplate.self,
+            TemplateItem.self
         ])
 
         do {
@@ -37,6 +43,8 @@ struct TravelPinApp: App {
         }
     }()
 
+    @AppStorage("isDarkMode") private var isDarkMode = false
+    
     var body: some Scene {
         WindowGroup {
             ZStack {
@@ -44,6 +52,8 @@ struct TravelPinApp: App {
                 BrandLaunchViewWrapper()
             }
             .environmentObject(LanguageManager.shared)
+            .withToast()
+            .preferredColorScheme(isDarkMode ? .dark : .light)
         }
         .modelContainer(Self.container)
     }

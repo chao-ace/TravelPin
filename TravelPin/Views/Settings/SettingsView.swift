@@ -9,6 +9,8 @@ struct SettingsView: View {
     @Query private var travels: [Travel]
     @Environment(\.modelContext) private var modelContext
 
+    @State private var showFeedback = false
+
     var body: some View {
         NavigationStack {
             ScrollView(showsIndicators: false) {
@@ -17,80 +19,86 @@ struct SettingsView: View {
                     appIdentityHeader
 
                     // MARK: - AI Provider Section
-                    SettingsSection(title: "AI 智能助手") {
+                    SettingsSection(title: "settings.section.ai".localized) {
                         NavigationLink(destination: AIProviderSettingsView()) {
                             SettingsRow(
                                 icon: "cpu",
                                 iconColor: .purple,
-                                title: "AI 模型配置",
+                                title: "settings.row.ai_config".localized,
                                 subtitle: AIProviderRegistry.shared.activeProviderType.displayName
                             )
                         }
                     }
 
                     // MARK: - User Context Section
-                    SettingsSection(title: "个人与账户") {
+                    SettingsSection(title: "settings.section.account".localized) {
                         NavigationLink(destination: ProfileView()) {
-                            SettingsRow(icon: "person.crop.circle.fill", iconColor: .tpAccent, title: "设计师 chao", subtitle: "普通用户")
+                            SettingsRow(icon: "person.crop.circle.fill", iconColor: .tpAccent, title: "profile.user.name".localized, subtitle: "profile.user.role".localized)
                         }
                         SettingsDivider()
-                        ToggleRow(icon: "icloud.fill", iconColor: .blue, title: "iCloud 云同步", isOn: $cloudSyncEnabled)
+                        ToggleRow(icon: "icloud.fill", iconColor: .blue, title: "settings.row.icloud".localized, isOn: $cloudSyncEnabled)
                             .onChange(of: cloudSyncEnabled) { _, newValue in
                                 TPHaptic.selection()
                             }
                     }
 
                     // MARK: - Preferences Section
-                    SettingsSection(title: "应用偏好") {
-                        NavigationLink(destination: LanguageSettingsView()) {
-                            SettingsRow(icon: "character.bubble.fill", iconColor: .orange, title: "语言设置", subtitle: languageManager.currentLanguage == .english ? "English" : "简体中文")
-                        }
+                    SettingsSection(title: "settings.section.preferences".localized) {
+                        ToggleRow(
+                            icon: "character.bubble.fill", 
+                            iconColor: .orange, 
+                            title: languageManager.currentLanguage == .english ? "English" : "简体中文", 
+                            isOn: Binding(
+                                get: { languageManager.currentLanguage == .english },
+                                set: { languageManager.currentLanguage = $0 ? .english : .simplifiedChinese }
+                            )
+                        )
                         SettingsDivider()
                         NavigationLink(destination: AppIconSettingsView()) {
-                            SettingsRow(icon: "app.dashed", iconColor: .tpAccent, title: "更换图标")
+                            SettingsRow(icon: "app.dashed", iconColor: .tpAccent, title: "settings.row.app_icon".localized)
                         }
                         SettingsDivider()
-                        ToggleRow(icon: "moon.fill", iconColor: .indigo, title: "深色模式", isOn: $isDarkMode)
+                        ToggleRow(icon: "moon.fill", iconColor: .indigo, title: "settings.row.dark_mode".localized, isOn: $isDarkMode)
                         SettingsDivider()
-                        ToggleRow(icon: "hand.tap.fill", iconColor: .pink, title: "触感反馈", isOn: $hapticEnabled)
+                        ToggleRow(icon: "hand.tap.fill", iconColor: .pink, title: "settings.row.haptic".localized, isOn: $hapticEnabled)
                     }
 
                     // MARK: - Storage Section
-                    SettingsSection(title: "存储空间") {
+                    SettingsSection(title: "settings.section.storage".localized) {
                         Button {
                             clearCache()
                         } label: {
-                            SettingsRow(icon: "trash.fill", iconColor: .red, title: "清除缓存", subtitle: storageSummary)
+                            SettingsRow(icon: "trash.fill", iconColor: .red, title: "settings.row.clear_cache".localized, subtitle: storageSummary)
                         }
                         .buttonStyle(.plain)
                         SettingsDivider()
                         NavigationLink(destination: DataManagementView()) {
-                            SettingsRow(icon: "internaldrive.fill", iconColor: .gray, title: "数据管理", subtitle: "\(travels.count) 个旅程")
+                            SettingsRow(icon: "internaldrive.fill", iconColor: .gray, title: "settings.row.data_mgmt".localized, subtitle: "\("profile.stat.journeys".localized): \(travels.count)")
                         }
                     }
 
                     // MARK: - Support & Legal Section
-                    SettingsSection(title: "支持与关于") {
+                    SettingsSection(title: "settings.section.support".localized) {
                         Button {
                             requestReview()
                         } label: {
-                            SettingsRow(icon: "star.fill", iconColor: .yellow, title: "去 App Store 评分")
+                            SettingsRow(icon: "star.fill", iconColor: .yellow, title: "settings.row.rate".localized)
                         }
                         .buttonStyle(.plain)
                         SettingsDivider()
                         Button {
-                            sendFeedback()
+                            showFeedback = true
                         } label: {
-                            SettingsRow(icon: "envelope.fill", iconColor: .green, title: "意见反馈")
+                            SettingsRow(icon: "envelope.fill", iconColor: .green, title: "settings.row.feedback".localized)
                         }
                         .buttonStyle(.plain)
                         SettingsDivider()
                         NavigationLink(destination: PrivacyPolicyView()) {
-                            SettingsRow(icon: "doc.text.fill", iconColor: .gray, title: "隐私政策")
+                            SettingsRow(icon: "doc.text.fill", iconColor: .gray, title: "settings.row.privacy".localized)
                         }
                         SettingsDivider()
                         NavigationLink(destination: TermsOfServiceView()) {
-                            SettingsRow(icon: "doc.text.magnifyingglass", iconColor: .gray, title: "使用条款")
+                            SettingsRow(icon: "doc.text.magnifyingglass", iconColor: .gray, title: "settings.row.terms".localized)
                         }
                     }
 
@@ -111,12 +119,15 @@ struct SettingsView: View {
             .background(TPDesign.backgroundGradient.ignoresSafeArea())
             .navigationTitle("settings.title".localized)
             .navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $showFeedback) {
+                FeedbackSheet()
+            }
         }
     }
 
     private var storageSummary: String {
         let photoCount = travels.reduce(0) { $0 + $1.spots.reduce(0) { $0 + $1.photos.count } }
-        if photoCount == 0 { return "计算中..." }
+        if photoCount == 0 { return "settings.row.cache_calculating".localized }
         let estimatedMB = photoCount * 3 // rough estimate 3MB per photo
         if estimatedMB < 1024 { return "~\(estimatedMB) MB" }
         return String(format: "~%.1f GB", Double(estimatedMB) / 1024.0)
@@ -196,11 +207,11 @@ struct ProfileView: View {
                             .foregroundStyle(.white)
                     }
 
-                    Text("设计师 chao")
+                    Text("profile.user.name".localized)
                         .font(TPDesign.editorialSerif(24))
                         .foregroundStyle(TPDesign.obsidian)
 
-                    Text("TravelPin 旅行家")
+                    Text("profile.user.tag".localized)
                         .font(TPDesign.bodyFont(14))
                         .foregroundStyle(TPDesign.textTertiary)
                 }
@@ -208,47 +219,47 @@ struct ProfileView: View {
 
                 // Stats Summary
                 HStack(spacing: 0) {
-                    profileStatItem(value: "\(travels.count)", label: "旅程")
+                    profileStatItem(value: "\(travels.count)", label: "profile.stat.journeys".localized)
                     Divider().frame(height: 40)
-                    profileStatItem(value: "\(spots.count)", label: "足迹")
+                    profileStatItem(value: "\(spots.count)", label: "profile.stat.spots".localized)
                     Divider().frame(height: 40)
-                    profileStatItem(value: "\(totalPhotos)", label: "照片")
+                    profileStatItem(value: "\(totalPhotos)", label: "profile.stat.photos".localized)
                     Divider().frame(height: 40)
-                    profileStatItem(value: "\(visitedCities)", label: "城市")
+                    profileStatItem(value: "\(visitedCities)", label: "profile.stat.cities".localized)
                 }
                 .padding()
                 .background(
                     RoundedRectangle(cornerRadius: 20)
-                        .fill(Color.white.opacity(0.8))
+                        .fill(TPDesign.secondaryBackground.opacity(0.8))
                         .shadowSmall()
                 )
 
                 // Achievement Badges
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("旅行成就")
+                    Text("profile.section.achievements".localized)
                         .font(TPDesign.editorialSerif(18))
                         .foregroundStyle(TPDesign.obsidian)
 
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                        achievementBadge(icon: "airplane", title: "初次启程", earned: travels.count >= 1)
-                        achievementBadge(icon: "globe.americas.fill", title: "世界探索者", earned: travels.count >= 5)
-                        achievementBadge(icon: "camera.fill", title: "摄影达人", earned: totalPhotos >= 50)
-                        achievementBadge(icon: "star.fill", title: "十旅达人", earned: travels.count >= 10)
-                        achievementBadge(icon: "map.fill", title: "足迹遍布", earned: visitedCities >= 10)
-                        achievementBadge(icon: "wand.and.stars", title: "AI 旅记家", earned: false)
+                        achievementBadge(icon: "airplane", title: "profile.achievement.first".localized, earned: travels.count >= 1)
+                        achievementBadge(icon: "globe.americas.fill", title: "profile.achievement.explorer".localized, earned: travels.count >= 5)
+                        achievementBadge(icon: "camera.fill", title: "profile.achievement.photographer".localized, earned: totalPhotos >= 50)
+                        achievementBadge(icon: "star.fill", title: "profile.achievement.ten_trips".localized, earned: travels.count >= 10)
+                        achievementBadge(icon: "map.fill", title: "profile.achievement.footprints".localized, earned: visitedCities >= 10)
+                        achievementBadge(icon: "wand.and.stars", title: "profile.achievement.ai".localized, earned: false)
                     }
                 }
                 .padding()
                 .background(
                     RoundedRectangle(cornerRadius: 20)
-                        .fill(Color.white.opacity(0.8))
+                        .fill(TPDesign.secondaryBackground.opacity(0.8))
                         .shadowSmall()
                 )
             }
             .padding(.horizontal, 20)
         }
         .background(TPDesign.backgroundGradient.ignoresSafeArea())
-        .navigationTitle("个人资料")
+        .navigationTitle("profile.title".localized)
         .navigationBarTitleDisplayMode(.inline)
     }
 
@@ -277,7 +288,7 @@ struct ProfileView: View {
         VStack(spacing: 8) {
             ZStack {
                 Circle()
-                    .fill(earned ? Color.tpAccent.opacity(0.15) : TPDesign.divider.opacity(0.3))
+                    .fill(earned ? Color.tpAccent.opacity(0.15) : TPDesign.secondaryBackground.opacity(0.3))
                     .frame(width: 48, height: 48)
                 Image(systemName: icon)
                     .font(.system(size: 20, weight: .medium))
@@ -358,7 +369,7 @@ struct AppIconSettingsView: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 20)
-                .fill(isSelected ? Color.tpAccent.opacity(0.05) : Color.white)
+                .fill(isSelected ? Color.tpAccent.opacity(0.05) : TPDesign.secondaryBackground)
                 .overlay(
                     RoundedRectangle(cornerRadius: 20)
                         .stroke(isSelected ? Color.tpAccent.opacity(0.3) : TPDesign.divider, lineWidth: 1)
@@ -434,7 +445,7 @@ struct AIProviderSettingsView: View {
                     .padding(14)
                     .background(
                         RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.white)
+                            .fill(TPDesign.secondaryBackground)
                             .overlay(RoundedRectangle(cornerRadius: 12).stroke(TPDesign.divider, lineWidth: 1))
                     )
                     .autocorrectionDisabled()
@@ -455,7 +466,7 @@ struct AIProviderSettingsView: View {
                     .padding(14)
                     .background(
                         RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.white)
+                            .fill(TPDesign.secondaryBackground)
                             .overlay(RoundedRectangle(cornerRadius: 12).stroke(TPDesign.divider, lineWidth: 1))
                     )
                     .autocorrectionDisabled()
@@ -595,7 +606,7 @@ struct AIProviderSettingsView: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(isSelected ? Color.tpAccent.opacity(0.06) : Color.white)
+                .fill(isSelected ? Color.tpAccent.opacity(0.06) : TPDesign.secondaryBackground)
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)
                         .stroke(isSelected ? Color.tpAccent.opacity(0.3) : TPDesign.divider, lineWidth: 1)
@@ -650,7 +661,7 @@ struct DataManagementView: View {
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 20)
-                .fill(Color.white)
+                .fill(TPDesign.secondaryBackground)
                 .shadowSmall()
         )
     }
@@ -783,7 +794,7 @@ struct PrivacyPolicyView: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color.white.opacity(0.8))
+                .fill(TPDesign.secondaryBackground.opacity(0.8))
                 .shadowSmall()
         )
     }
@@ -874,12 +885,12 @@ struct SettingsSection<Content: View>: View {
             VStack(spacing: 0) {
                 content
             }
-            .background(.white.opacity(0.6))
+            .background(TPDesign.secondaryBackground.opacity(0.6))
             .background(.ultraThinMaterial)
             .clipShape(RoundedRectangle(cornerRadius: 20))
             .overlay(
                 RoundedRectangle(cornerRadius: 20)
-                    .stroke(Color.white.opacity(0.3), lineWidth: 0.5)
+                    .stroke(TPDesign.obsidian.opacity(0.15), lineWidth: 0.5)
             )
         }
     }
@@ -958,43 +969,151 @@ struct SettingsDivider: View {
     }
 }
 
-struct LanguageSettingsView: View {
-    @ObservedObject var languageManager = LanguageManager.shared
+// MARK: - Feedback Sheet View
+
+struct FeedbackSheet: View {
     @Environment(\.dismiss) var dismiss
-
+    @State private var content: String = ""
+    @State private var feedbackType: String = "feedback.type.bug".localized
+    @State private var isSubmitting = false
+    @State private var showSuccess = false
+    
+    let types = [
+        "feedback.type.bug".localized,
+        "feedback.type.feature".localized,
+        "feedback.type.other".localized
+    ]
+    
     var body: some View {
-        VStack(spacing: 24) {
-            languageOption(title: "English", sub: "English", lang: .english)
-            languageOption(title: "简体中文", sub: "Simplified Chinese", lang: .simplifiedChinese)
-            Spacer()
+        NavigationStack {
+            VStack(spacing: 24) {
+                // Type Picker
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(locKey: "feedback.type.label")
+                        .font(TPDesign.overline())
+                        .foregroundStyle(TPDesign.textTertiary)
+                    
+                    HStack(spacing: 12) {
+                        ForEach(types, id: \.self) { type in
+                            FeedbackTypeOption(
+                                type: type,
+                                isSelected: feedbackType == type,
+                                action: { feedbackType = type }
+                            )
+                        }
+                    }
+                }
+                .padding(.top, 10)
+                
+                // Content Input
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(locKey: "feedback.content.label")
+                        .font(TPDesign.overline())
+                        .foregroundStyle(TPDesign.textTertiary)
+                    
+                    ZStack(alignment: .topLeading) {
+                        if content.isEmpty {
+                            Text("feedback.placeholder".localized)
+                                .font(TPDesign.bodyFont(15))
+                                .foregroundStyle(TPDesign.textTertiary)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 12)
+                        }
+                        
+                        TextEditor(text: $content)
+                            .font(TPDesign.bodyFont(15))
+                            .scrollContentBackground(.hidden)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(TPDesign.secondaryBackground)
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .stroke(TPDesign.obsidian.opacity(0.1), lineWidth: 0.5)
+                            )
+                    }
+                    .frame(height: 200)
+                }
+                
+                Spacer()
+                
+                // Submit Button
+                Button {
+                    submitFeedback()
+                } label: {
+                    if isSubmitting {
+                        ProgressView().tint(.white)
+                    } else {
+                        Text("feedback.submit".localized)
+                            .font(TPDesign.bodyFont(16, weight: .bold))
+                            .foregroundStyle(.white)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background {
+                    if content.isEmpty {
+                        Color.gray.opacity(0.3)
+                    } else {
+                        TPDesign.accentGradient
+                    }
+                }
+                .clipShape(Capsule())
+                .disabled(content.isEmpty || isSubmitting)
+                .padding(.bottom, 10)
+            }
+            .padding(24)
+            .navigationTitle("feedback.title".localized)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("common.cancel".localized) {
+                        dismiss()
+                    }
+                }
+            }
+            .background(TPDesign.backgroundGradient)
+            .alert("feedback.success".localized, isPresented: $showSuccess) {
+                Button("common.done".localized) {
+                    dismiss()
+                }
+            }
         }
-        .padding(24)
-        .navigationTitle("语言设置")
-        .background(TPDesign.backgroundGradient)
     }
+    
+    private func submitFeedback() {
+        isSubmitting = true
+        // Simulate network delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            isSubmitting = false
+            TPHaptic.notification(.success)
+            showSuccess = true
+        }
+    }
+}
 
-    func languageOption(title: String, sub: String, lang: AppLanguage) -> some View {
+// MARK: - Subviews for Feedback
+
+struct FeedbackTypeOption: View {
+    let type: String
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
         Button {
             TPHaptic.selection()
-            withAnimation {
-                languageManager.currentLanguage = lang
-                dismiss()
-            }
+            action()
         } label: {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title).font(TPDesign.bodyFont(17).bold())
-                    Text(sub).font(TPDesign.captionFont()).foregroundStyle(.secondary)
-                }
-                Spacer()
-                if languageManager.currentLanguage == lang {
-                    Image(systemName: "checkmark.circle.fill").foregroundStyle(Color.tpAccent)
-                }
-            }
-            .padding(16)
-            .background(Color.white)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+            Text(type)
+                .font(TPDesign.bodyFont(14, weight: .bold))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(isSelected ? TPDesign.accentGradient : LinearGradient(colors: [TPDesign.secondaryBackground], startPoint: .top, endPoint: .bottom))
+                .foregroundStyle(isSelected ? .white : TPDesign.textPrimary)
+                .clipShape(Capsule())
+                .overlay(
+                    Capsule().stroke(isSelected ? Color.clear : TPDesign.obsidian.opacity(0.1), lineWidth: 0.5)
+                )
         }
         .buttonStyle(.plain)
     }

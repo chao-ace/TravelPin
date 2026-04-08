@@ -107,7 +107,7 @@ struct BrandLaunchView: View {
                     }
 
                     VStack(spacing: 12) {
-                        Text("足迹相连，便是探索无限")
+                        Text(locKey: "splash.tagline")
                             .font(.system(size: 16, weight: .light))
                             .foregroundStyle(.white.opacity(0.8))
                             .tracking(4)
@@ -199,11 +199,11 @@ struct OnboardingWizardView: View {
             }
 
             VStack(spacing: 16) {
-                Text("欢迎来到 TravelPin")
+                Text(locKey: "onboarding.welcome.title")
                     .font(TPDesign.editorialSerif(32))
                     .foregroundStyle(TPDesign.obsidian)
 
-                Text("记录旅途中的每一个瞬间\n让足迹变成永恒的故事")
+                Text(locKey: "onboarding.welcome.subtitle")
                     .font(TPDesign.bodyFont(17))
                     .foregroundStyle(TPDesign.textSecondary)
                     .multilineTextAlignment(.center)
@@ -213,9 +213,9 @@ struct OnboardingWizardView: View {
 
             // Feature Highlights
             VStack(spacing: 20) {
-                featureRow(icon: "map.fill", title: "交互式地图", desc: "离线也能精准定位")
-                featureRow(icon: "wand.and.stars", title: "AI 游记", desc: "一键生成文学随笔")
-                featureRow(icon: "doc.richtext", title: "电影感海报", desc: "精美排版一键分享")
+                featureRow(icon: "map.fill", title: "onboarding.feature.map.title".localized, desc: "onboarding.feature.map.desc".localized)
+                featureRow(icon: "wand.and.stars", title: "onboarding.feature.ai.title".localized, desc: "onboarding.feature.ai.desc".localized)
+                featureRow(icon: "doc.richtext", title: "onboarding.feature.poster.title".localized, desc: "onboarding.feature.poster.desc".localized)
             }
             .padding(.horizontal, 40)
 
@@ -255,16 +255,16 @@ struct OnboardingWizardView: View {
                 .foregroundStyle(TPDesign.warmAmber)
 
             VStack(spacing: 12) {
-                Text("为旅程命名")
+                Text(locKey: "onboarding.name.title")
                     .font(TPDesign.editorialSerif(28))
                     .foregroundStyle(TPDesign.obsidian)
-                Text("给第一个目的地起个名字吧")
+                Text(locKey: "onboarding.name.subtitle")
                     .font(TPDesign.bodyFont(15))
                     .foregroundStyle(TPDesign.textSecondary)
             }
 
             VStack(alignment: .leading, spacing: 16) {
-                TextField("例如：镰仓避世之旅", text: $travelName)
+                TextField("onboarding.name.placeholder".localized, text: $travelName)
                     .font(TPDesign.bodyFont(18))
                     .padding(16)
                     .background(
@@ -274,7 +274,7 @@ struct OnboardingWizardView: View {
                     )
                     .shadowSmall()
 
-                Text("选择旅行类型")
+                Text(locKey: "onboarding.name.typeLabel")
                     .font(TPDesign.overline())
                     .foregroundStyle(TPDesign.textTertiary)
                     .padding(.top, 8)
@@ -327,16 +327,16 @@ struct OnboardingWizardView: View {
                 .foregroundStyle(TPDesign.celestialBlue)
 
             VStack(spacing: 12) {
-                Text("计划出发时间")
+                Text(locKey: "onboarding.date.title")
                     .font(TPDesign.editorialSerif(28))
                     .foregroundStyle(TPDesign.obsidian)
-                Text("不确定也没关系，随时可以修改")
+                Text(locKey: "onboarding.date.subtitle")
                     .font(TPDesign.bodyFont(15))
                     .foregroundStyle(TPDesign.textSecondary)
             }
 
             VStack(spacing: 20) {
-                DatePicker("出发日期", selection: $startDate, displayedComponents: .date)
+                DatePicker("onboarding.date.start".localized, selection: $startDate, displayedComponents: .date)
                     .datePickerStyle(.graphical)
                     .padding()
                     .background(
@@ -345,7 +345,7 @@ struct OnboardingWizardView: View {
                             .shadowSmall()
                     )
 
-                DatePicker("返回日期", selection: $endDate, in: startDate..., displayedComponents: .date)
+                DatePicker("onboarding.date.end".localized, selection: $endDate, in: startDate..., displayedComponents: .date)
                     .datePickerStyle(.compact)
                     .padding()
                     .background(
@@ -378,23 +378,23 @@ struct OnboardingWizardView: View {
             }
 
             VStack(spacing: 12) {
-                Text(travelName.isEmpty ? "准备就绪" : "\(travelName)")
+                Text(travelName.isEmpty ? "onboarding.ready.title".localized : "\(travelName)")
                     .font(TPDesign.editorialSerif(28))
                     .foregroundStyle(TPDesign.obsidian)
                     .multilineTextAlignment(.center)
 
-                Text("你的第一个旅程即将开始")
+                Text(locKey: "onboarding.ready.subtitle")
                     .font(TPDesign.bodyFont(15))
                     .foregroundStyle(TPDesign.textSecondary)
             }
 
             // Summary Card
             VStack(spacing: 16) {
-                summaryRow(icon: "mappin.and.ellipse", label: "目的地", value: travelName.isEmpty ? "未命名旅程" : travelName)
+                summaryRow(icon: "mappin.and.ellipse", label: "onboarding.ready.destination".localized, value: travelName.isEmpty ? "onboarding.ready.unnamed".localized : travelName)
                 Divider().padding(.leading, 44)
-                summaryRow(icon: "tag.fill", label: "类型", value: selectedType.displayName)
+                summaryRow(icon: "tag.fill", label: "onboarding.ready.type".localized, value: selectedType.displayName)
                 Divider().padding(.leading, 44)
-                summaryRow(icon: "calendar", label: "日期", value: "\(startDate.formatted(.dateTime.month(.abbreviated).day())) - \(endDate.formatted(.dateTime.month(.abbreviated).day()))")
+                summaryRow(icon: "calendar", label: "onboarding.ready.date".localized, value: "\(startDate.formatted(.dateTime.month(.abbreviated).day())) - \(endDate.formatted(.dateTime.month(.abbreviated).day()))")
             }
             .padding(20)
             .background(
@@ -438,7 +438,7 @@ struct OnboardingWizardView: View {
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "chevron.left")
-                        Text("上一步")
+                        Text(locKey: "onboarding.action.back")
                     }
                     .font(TPDesign.bodyFont(15))
                     .foregroundStyle(TPDesign.textSecondary)
@@ -456,7 +456,7 @@ struct OnboardingWizardView: View {
                 }
             } label: {
                 HStack(spacing: 6) {
-                    Text(currentPage == pages - 1 ? "开始旅程" : "下一步")
+                    Text(locKey: currentPage == pages - 1 ? "onboarding.action.start" : "onboarding.action.next")
                     if currentPage < pages - 1 {
                         Image(systemName: "chevron.right")
                     }
@@ -476,7 +476,7 @@ struct OnboardingWizardView: View {
     // MARK: - Create First Travel
 
     private func createFirstTravel() {
-        let name = travelName.isEmpty ? "第一次旅行" : travelName
+        let name = travelName.isEmpty ? "onboarding.default.name".localized : travelName
         let travel = Travel(name: name, startDate: startDate, endDate: endDate, status: TravelStatus.planning.rawValue, type: selectedType.rawValue)
         modelContext.insert(travel)
         

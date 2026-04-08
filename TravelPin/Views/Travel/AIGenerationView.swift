@@ -77,7 +77,7 @@ struct AIGenerationView: View {
                         Text(locKey: "ai.review.memoir")
                             .font(.caption2).tracking(4)
                             .padding(.horizontal, 10)
-                            .background(Color.white)
+                            .background(TPDesign.background)
                     )
                     .padding(.top, 20)
                 
@@ -90,11 +90,11 @@ struct AIGenerationView: View {
                 .padding(32)
                 .background(
                     RoundedRectangle(cornerRadius: 24)
-                        .fill(.white.opacity(0.6))
+                        .fill(TPDesign.secondaryBackground.opacity(0.6))
                         .background(.ultraThinMaterial)
                         .overlay(
                             RoundedRectangle(cornerRadius: 24)
-                                .stroke(.white.opacity(0.4), lineWidth: 1)
+                                .stroke(TPDesign.obsidian.opacity(0.2), lineWidth: 1)
                         )
                 )
                 .shadowLarge()
@@ -131,14 +131,28 @@ struct AIGenerationView: View {
     }
     
     private func generateAction() {
+        if !NetworkMonitor.shared.isConnected {
+            ToastManager.shared.show(type: .warning, message: "ai.error.offline".localized)
+            return
+        }
+        
         isGenerating = true
         Task {
             do {
                 generatedText = try await AIAssistantService.shared.generateJournalComplete(for: travel, style: selectedStyle)
             } catch {
-                generatedText = "生成失败：\(error.localizedDescription)"
+                await MainActor.run {
+                    ToastManager.shared.show(type: .error, message: error.localizedDescription)
+                    isGenerating = false
+                }
+                return
             }
-            isGenerating = false
+            await MainActor.run {
+                isGenerating = false
+                if !generatedText.isEmpty && !generatedText.contains("生成失败") {
+                    TPHaptic.notification(.success)
+                }
+            }
         }
     }
 }

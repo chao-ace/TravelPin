@@ -1,11 +1,14 @@
 import SwiftUI
-import SwiftData
+
+// MARK: - TripResonanceDetailView
 
 struct TripResonanceDetailView: View {
-    let travel: Travel
+    let trip: PublishedTrip
     let onRemix: () -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var showRemixConfirm = false
+    @State private var showComments = false
+    @State private var isLiking = false
 
     var body: some View {
         ZStack {
@@ -15,9 +18,15 @@ struct TripResonanceDetailView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     heroHeader
                     statsBar
-                    itineraryTimeline
-                    spotGallery
-                    vibeSection
+                    interactionBar
+
+                    if let snapshot = trip.decodedSnapshot {
+                        itineraryTimeline(snapshot: snapshot)
+                        spotGallery(snapshot: snapshot)
+                        vibeSection(tags: snapshot.vibeTags)
+                    } else {
+                        snapshotUnavailable
+                    }
 
                     Spacer(minLength: 140)
                 }
@@ -27,19 +36,23 @@ struct TripResonanceDetailView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showComments) {
+            CommentSheetView(trip: trip)
+        }
+        .task {
+            await SocialService.shared.incrementViewCount(trip)
+        }
     }
 
     // MARK: - Hero Header
 
     private var heroHeader: some View {
         ZStack(alignment: .bottomLeading) {
-            // Gradient backdrop
             ZStack {
-                cardGradient(for: travel.type)
+                cardGradient(for: trip.travelType)
                     .frame(height: 260)
 
-                // Decorative
-                Image(systemName: travel.type.icon)
+                Image(systemName: trip.travelType.icon)
                     .font(.system(size: 100, weight: .ultraLight))
                     .foregroundStyle(.white.opacity(0.06))
                     .offset(x: 100, y: -40)
@@ -56,14 +69,14 @@ struct TripResonanceDetailView: View {
                 .foregroundStyle(TPDesign.warmGold)
                 .tracking(1)
 
-                Text(travel.name)
+                Text(trip.title)
                     .font(.system(size: 36, weight: .black, design: .serif))
                     .foregroundStyle(.white)
 
                 HStack(spacing: 12) {
-                    Label(travel.type.displayName, systemImage: travel.type.icon)
-                    Label("\(travel.durationDays) 天", systemImage: "calendar")
-                    Text(travel.startDate.formatted(.dateTime.year().month()))
+                    Label(trip.travelType.displayName, systemImage: trip.travelType.icon)
+                    Label("\(trip.durationDays) 天", systemImage: "calendar")
+                    Label(trip.authorName, systemImage: "person.circle")
                 }
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(.white.opacity(0.8))
@@ -74,11 +87,11 @@ struct TripResonanceDetailView: View {
 
     private func cardGradient(for type: TravelType) -> LinearGradient {
         switch type {
-        case .tourism: return LinearGradient(colors: [TPDesign.deepNavy, TPDesign.midnightTeal], startPoint: .topLeading, endPoint: .bottomTrailing)
-        case .concert: return LinearGradient(colors: [TPDesign.marineDeep, TPDesign.celestialBlue.opacity(0.6)], startPoint: .topLeading, endPoint: .bottomTrailing)
-        case .chill: return LinearGradient(colors: [TPDesign.warmAmber.opacity(0.7), TPDesign.warmGold], startPoint: .topLeading, endPoint: .bottomTrailing)
+        case .tourism:  return LinearGradient(colors: [TPDesign.deepNavy, TPDesign.midnightTeal], startPoint: .topLeading, endPoint: .bottomTrailing)
+        case .concert:  return LinearGradient(colors: [TPDesign.marineDeep, TPDesign.celestialBlue.opacity(0.6)], startPoint: .topLeading, endPoint: .bottomTrailing)
+        case .chill:    return LinearGradient(colors: [TPDesign.warmAmber.opacity(0.7), TPDesign.warmGold], startPoint: .topLeading, endPoint: .bottomTrailing)
         case .business: return LinearGradient(colors: [TPDesign.obsidian, TPDesign.obsidian.opacity(0.7)], startPoint: .topLeading, endPoint: .bottomTrailing)
-        case .other: return LinearGradient(colors: [TPDesign.marineDeep.opacity(0.5), TPDesign.deepNavy], startPoint: .topLeading, endPoint: .bottomTrailing)
+        case .other:    return LinearGradient(colors: [TPDesign.marineDeep.opacity(0.5), TPDesign.deepNavy], startPoint: .topLeading, endPoint: .bottomTrailing)
         }
     }
 
@@ -86,11 +99,11 @@ struct TripResonanceDetailView: View {
 
     private var statsBar: some View {
         HStack(spacing: 0) {
-            statCell(value: "\(travel.itineraries.count)", label: "天", icon: "calendar")
+            statCell(value: "\(trip.durationDays)", label: "天", icon: "calendar")
             Divider().frame(height: 36)
-            statCell(value: "\(travel.spots.count)", label: "处足迹", icon: "mappin")
+            statCell(value: "\(trip.likeCount)", label: "喜欢", icon: "heart.fill")
             Divider().frame(height: 36)
-            statCell(value: "\(travel.spots.filter { $0.type == .food }.count)", label: "美食", icon: "fork.knife")
+            statCell(value: "\(trip.commentCount)", label: "评论", icon: "text.bubble")
         }
         .padding(.vertical, 16)
         .background(Color.white.opacity(0.7))
@@ -117,9 +130,75 @@ struct TripResonanceDetailView: View {
         .frame(maxWidth: .infinity)
     }
 
+    // MARK: - Interaction Bar
+
+    private var interactionBar: some View {
+        HStack(spacing: 0) {
+            // Like
+            Button {
+                toggleLike()
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: trip.isLikedByCurrentUser ? "heart.fill" : "heart")
+                        .font(.system(size: 18))
+                    Text("\(trip.likeCount)")
+                        .font(.system(size: 14, weight: .semibold))
+                }
+                .foregroundStyle(trip.isLikedByCurrentUser ? .red : TPDesign.textSecondary)
+                .frame(maxWidth: .infinity)
+            }
+
+            // Bookmark
+            Button {
+                toggleBookmark()
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: trip.isBookmarkedByCurrentUser ? "bookmark.fill" : "bookmark")
+                        .font(.system(size: 18))
+                    Text("\(trip.bookmarkCount)")
+                        .font(.system(size: 14, weight: .semibold))
+                }
+                .foregroundStyle(trip.isBookmarkedByCurrentUser ? TPDesign.warmGold : TPDesign.textSecondary)
+                .frame(maxWidth: .infinity)
+            }
+
+            // Comment
+            Button {
+                showComments = true
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "text.bubble")
+                        .font(.system(size: 18))
+                    Text("\(trip.commentCount)")
+                        .font(.system(size: 14, weight: .semibold))
+                }
+                .foregroundStyle(TPDesign.textSecondary)
+                .frame(maxWidth: .infinity)
+            }
+
+            // Share
+            ShareLink(item: "来看看这个旅程：\(trip.title)") {
+                HStack(spacing: 6) {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 18))
+                    Text("分享")
+                        .font(.system(size: 14, weight: .semibold))
+                }
+                .foregroundStyle(TPDesign.textSecondary)
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .padding(.vertical, 16)
+        .background(Color.white.opacity(0.5))
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .padding(.horizontal, 24)
+        .padding(.top, 16)
+        .cinematicFadeIn(delay: 0.15)
+    }
+
     // MARK: - Itinerary Timeline
 
-    private var itineraryTimeline: some View {
+    private func itineraryTimeline(snapshot: TripSnapshot) -> some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("行程路线")
                 .font(TPDesign.editorialSerif(22))
@@ -127,7 +206,7 @@ struct TripResonanceDetailView: View {
                 .padding(.horizontal, 24)
                 .padding(.top, 28)
 
-            ForEach(travel.itineraries.sorted(by: { $0.day < $1.day })) { itinerary in
+            ForEach(snapshot.itineraries.sorted(by: { $0.day < $1.day })) { itinerary in
                 HStack(alignment: .top, spacing: 14) {
                     // Timeline node
                     VStack(spacing: 0) {
@@ -138,7 +217,7 @@ struct TripResonanceDetailView: View {
                             .background(Circle().fill(Color.tpAccent.opacity(0.1)))
                             .overlay(Circle().stroke(Color.tpAccent.opacity(0.2), lineWidth: 0.5))
 
-                        if itinerary.day < (travel.itineraries.map(\.day).max() ?? 0) {
+                        if itinerary.day < (snapshot.itineraries.map(\.day).max() ?? 0) {
                             Rectangle()
                                 .fill(Color.tpAccent.opacity(0.1))
                                 .frame(width: 1.5)
@@ -151,12 +230,10 @@ struct TripResonanceDetailView: View {
                             .font(TPDesign.bodyFont(16, weight: .bold))
                             .foregroundStyle(TPDesign.textPrimary)
 
-                        let daySpots = travel.spots.filter { $0.itinerary?.persistentModelID == itinerary.persistentModelID }
-                            .sorted { $0.sequence < $1.sequence }
-                        
-                        ForEach(daySpots) { spot in
+                        let daySpots = snapshot.spots.filter { _ in true } // All spots for simplicity
+                        ForEach(daySpots.prefix(3)) { spot in
                             HStack(spacing: 8) {
-                                Image(systemName: spot.type.icon)
+                                Image(systemName: SpotType(rawValue: spot.typeRaw)?.icon ?? "mappin")
                                     .font(.system(size: 11))
                                     .foregroundStyle(Color.tpAccent)
                                 Text(spot.name)
@@ -175,7 +252,7 @@ struct TripResonanceDetailView: View {
 
     // MARK: - Spot Gallery
 
-    private var spotGallery: some View {
+    private func spotGallery(snapshot: TripSnapshot) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("足迹亮点")
                 .font(TPDesign.editorialSerif(22))
@@ -185,29 +262,22 @@ struct TripResonanceDetailView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 16) {
-                    ForEach(travel.spots) { spot in
+                    ForEach(snapshot.spots) { spot in
                         VStack(alignment: .leading, spacing: 10) {
                             ZStack {
                                 RoundedRectangle(cornerRadius: 16)
                                     .fill(Color.tpAccent.opacity(0.05))
                                     .frame(width: 200, height: 140)
-                                    
-                                if let photo = spot.photos.first, let data = photo.data, let uiImage = UIImage(data: data) {
-                                    Image(uiImage: uiImage)
-                                        .resizable()
-                                        .scaledToFill()
-                                        .frame(width: 200, height: 140)
-                                        .clipShape(RoundedRectangle(cornerRadius: 16))
-                                } else {
-                                    VStack(spacing: 8) {
-                                        Image(systemName: spot.type.icon)
-                                            .font(.system(size: 28, weight: .light))
-                                            .foregroundStyle(Color.tpAccent.opacity(0.2))
-                                        Text(spot.type.displayName)
-                                            .font(.system(size: 11))
-                                            .foregroundStyle(TPDesign.textTertiary)
-                                    }
-                                }
+                                    .overlay(
+                                        VStack(spacing: 8) {
+                                            Image(systemName: SpotType(rawValue: spot.typeRaw)?.icon ?? "mappin")
+                                                .font(.system(size: 28, weight: .light))
+                                                .foregroundStyle(Color.tpAccent.opacity(0.2))
+                                            Text(SpotType(rawValue: spot.typeRaw)?.displayName ?? "")
+                                                .font(.system(size: 11))
+                                                .foregroundStyle(TPDesign.textTertiary)
+                                        }
+                                    )
                             }
 
                             VStack(alignment: .leading, spacing: 3) {
@@ -234,7 +304,7 @@ struct TripResonanceDetailView: View {
 
     // MARK: - Vibe Section
 
-    private var vibeSection: some View {
+    private func vibeSection(tags: [String]) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("旅行氛围")
                 .font(TPDesign.editorialSerif(22))
@@ -244,10 +314,9 @@ struct TripResonanceDetailView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
-                    vibeTag(icon: "camera.fill", label: "摄影之旅", color: TPDesign.celestialBlue)
-                    vibeTag(icon: "leaf.fill", label: "自然风光", color: .green)
-                    vibeTag(icon: "building.columns.fill", label: "人文历史", color: TPDesign.warmAmber)
-                    vibeTag(icon: "fork.knife", label: "美食探索", color: .orange)
+                    ForEach(tags, id: \.self) { tag in
+                        vibeTag(icon: tagIcon(tag), label: tag, color: tagColor(tag))
+                    }
                 }
                 .padding(.horizontal, 24)
             }
@@ -267,6 +336,49 @@ struct TripResonanceDetailView: View {
         .padding(.vertical, 8)
         .background(Capsule().fill(color.opacity(0.08)))
         .overlay(Capsule().stroke(color.opacity(0.15), lineWidth: 0.5))
+    }
+
+    private func tagIcon(_ tag: String) -> String {
+        switch tag {
+        case "摄影之旅":  return "camera.fill"
+        case "自然风光":  return "leaf.fill"
+        case "人文历史":  return "building.columns.fill"
+        case "美食探索":  return "fork.knife"
+        case "城市漫步":  return "figure.walk"
+        case "海滨度假":  return "water.waves"
+        case "山野徒步":  return "mountain.2"
+        case "夜生活":    return "moon.stars.fill"
+        default:         return "tag.fill"
+        }
+    }
+
+    private func tagColor(_ tag: String) -> Color {
+        switch tag {
+        case "摄影之旅":  return TPDesign.celestialBlue
+        case "自然风光":  return .green
+        case "人文历史":  return TPDesign.warmAmber
+        case "美食探索":  return .orange
+        case "城市漫步":  return .purple
+        case "海滨度假":  return .cyan
+        case "山野徒步":  return .brown
+        case "夜生活":    return .indigo
+        default:         return TPDesign.textSecondary
+        }
+    }
+
+    // MARK: - Snapshot Unavailable
+
+    private var snapshotUnavailable: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "tray")
+                .font(.system(size: 32, weight: .light))
+                .foregroundStyle(TPDesign.textTertiary)
+            Text("详细行程数据暂不可用")
+                .font(TPDesign.bodyFont(14))
+                .foregroundStyle(TPDesign.textTertiary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 60)
     }
 
     // MARK: - Floating Action Bar
@@ -305,12 +417,39 @@ struct TripResonanceDetailView: View {
             Text("将复制一份旅程副本到你的账户，包含行程和景点信息")
         }
     }
+
+    // MARK: - Actions
+
+    private func toggleLike() {
+        guard !isLiking else { return }
+        isLiking = true
+        TPHaptic.selection()
+        Task {
+            await SocialService.shared.toggleLike(trip)
+            isLiking = false
+        }
+    }
+
+    private func toggleBookmark() {
+        TPHaptic.selection()
+        Task {
+            await SocialService.shared.toggleBookmark(trip)
+        }
+    }
 }
 
 #Preview {
     NavigationStack {
-        TripResonanceDetailView(travel: MockDataCenter.getPublicTrips().first!) {
-            // remix action
-        }
+        let sample = PublishedTrip(
+            originalTravelId: nil,
+            authorName: "Explorer",
+            title: "Paris Architecture Tour",
+            descriptionText: "A beautiful tour",
+            coverGradientRaw: "deepNavy",
+            categoryTags: ["Culture", "Architecture"],
+            travelTypeRaw: "Tourism",
+            durationDays: 5
+        )
+        TripResonanceDetailView(trip: sample) {}
     }
 }

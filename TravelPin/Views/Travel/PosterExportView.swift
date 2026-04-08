@@ -11,11 +11,7 @@ enum PosterExportFormat: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 
     var displayName: String {
-        switch self {
-        case .xiaohongshu: return "小红书卡片"
-        case .moments:     return "朋友圈动态"
-        case .landscape:   return "全景海报"
-        }
+        return self.rawValue.localized
     }
 
     var ratio: CGFloat {
@@ -98,8 +94,8 @@ struct XiaohongshuPoster: View {
                         .foregroundStyle(.white)
 
                     HStack(spacing: 16) {
-                        Label("\(travel.itineraries.count) 天", systemImage: "calendar")
-                        Label("\(travel.spots.count) 处足迹", systemImage: "mappin.and.ellipse")
+                        Label("\(travel.itineraries.count) \("poster.design.days".localized)", systemImage: "calendar")
+                        Label("\(travel.spots.count) \("poster.design.spots".localized)", systemImage: "mappin.and.ellipse")
                         Text(travel.type.displayName)
                     }
                     .font(.system(size: 16, weight: .medium))
@@ -140,7 +136,7 @@ struct XiaohongshuPoster: View {
             HStack(spacing: 40) {
                 VStack(spacing: 4) {
                     Text(formatDate(travel.startDate))
-                    Text("出发日期")
+                    Text(locKey: "poster.design.start")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -150,7 +146,7 @@ struct XiaohongshuPoster: View {
 
                 VStack(spacing: 4) {
                     Text(formatDate(travel.endDate))
-                    Text("结束日期")
+                    Text(locKey: "poster.design.end")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -167,7 +163,7 @@ struct XiaohongshuPoster: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer()
-                Text("记录你的每一段不凡旅程")
+                Text(locKey: "poster.design.slogan")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
@@ -182,13 +178,13 @@ struct XiaohongshuPoster: View {
         date.formatted(.dateTime.month(.wide).day())
     }
 
-    private func travelTypeEmoji(_ type: String) -> String {
+    private func travelTypeLocalized(_ type: String) -> String {
         switch type.lowercased() {
-        case "tourism": return "✈️ 出游"
-        case "concert": return "🎵 演唱会"
-        case "chill": return "🏖 散心"
-        case "business": return "💼 出差"
-        default: return "🗺 旅行"
+        case "tourism": return "poster.type.tourism".localized
+        case "concert": return "poster.type.concert".localized
+        case "chill": return "poster.type.chill".localized
+        case "business": return "poster.type.business".localized
+        default: return "poster.type.other".localized
         }
     }
 }
@@ -228,7 +224,7 @@ struct MomentsPoster: View {
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
 
-                Text("\(travel.itineraries.count) 天 · \(travel.spots.count) 处足迹")
+                Text("\(travel.itineraries.count) \("poster.design.days".localized)\("poster.design.dots".localized)\(travel.spots.count) \("poster.design.spots".localized)")
                     .font(.system(size: 20, weight: .medium))
                     .foregroundStyle(.white.opacity(0.8))
 
@@ -302,9 +298,9 @@ struct PosterExportSheet: View {
                         RoundedRectangle(cornerRadius: 16)
                             .fill(.quaternary.opacity(0.3))
                             .overlay(
-                        VStack(spacing: 12) {
+                                VStack(spacing: 12) {
                                     ProgressView()
-                                    Text("渲染中...")
+                                    Text(locKey: "poster.export.rendering")
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
@@ -320,7 +316,7 @@ struct PosterExportSheet: View {
                         Button {
                             shareImage(image)
                         } label: {
-                            Label("分享海报", systemImage: "square.and.arrow.up")
+                            Label("poster.export.share".localized, systemImage: "square.and.arrow.up")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.borderedProminent)
@@ -329,7 +325,7 @@ struct PosterExportSheet: View {
                         Button {
                             UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
                         } label: {
-                            Label("保存到相册", systemImage: "arrow.down.circle")
+                            Label("poster.export.save".localized, systemImage: "arrow.down.circle")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.bordered)
@@ -340,11 +336,13 @@ struct PosterExportSheet: View {
                 Spacer()
             }
             .padding(.top)
-            .navigationTitle("导出海报")
+            .navigationTitle(Text(locKey: "poster.export.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("完成") { dismiss() }
+                    Button { dismiss() } label: {
+                        Text(locKey: "poster.export.done")
+                    }
                 }
             }
             .task {
@@ -363,6 +361,9 @@ struct PosterExportSheet: View {
         try? await Task.sleep(for: .milliseconds(100))
         renderedImage = PosterRenderer.render(travel: travel, format: selectedFormat)
         isRendering = false
+        if renderedImage != nil {
+            TPHaptic.notification(.success)
+        }
     }
 
     private func shareImage(_ image: UIImage) {

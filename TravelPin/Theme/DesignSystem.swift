@@ -1,13 +1,39 @@
 import SwiftUI
 
+extension Color {
+    static func dynamic(light: Color, dark: Color) -> Color {
+        Color(uiColor: UIColor { traitCollection in
+            return traitCollection.userInterfaceStyle == .dark ? UIColor(dark) : UIColor(light)
+        })
+    }
+}
+
 struct TPDesign {
     // MARK: - Divine Palette (Obsidian & Alabaster)
-    static let obsidian = Color(red: 0.08, green: 0.08, blue: 0.09) // Not just black, but stone obsidian
-    static let isabelline = Color(red: 0.98, green: 0.98, blue: 0.96) // Warm paper
-    static let alabaster = Color(red: 0.96, green: 0.96, blue: 0.94) // Soft ceramic
+    static let obsidian = Color.dynamic(
+        light: Color(red: 0.08, green: 0.08, blue: 0.09), // Stone obsidian
+        dark: Color(red: 0.96, green: 0.96, blue: 0.98)  // Soft light text
+    )
+    static let isabelline = Color.dynamic(
+        light: Color(red: 0.98, green: 0.98, blue: 0.96), // Warm paper
+        dark: Color(red: 0.04, green: 0.04, blue: 0.05)  // Deep midnight background
+    )
+    static let alabaster = Color.dynamic(
+        light: Color(red: 0.96, green: 0.96, blue: 0.94), // Soft ceramic
+        dark: Color(red: 0.12, green: 0.12, blue: 0.14)  // Card/Surface obsidian
+    )
 
     static let primary = obsidian
-    static let secondary = Color.white
+    static let secondary = Color.dynamic(
+        light: .white,
+        dark: Color(white: 0.2)
+    )
+    
+    /// Used for cards, search bars, and floating elements to replace hardcoded Color.white
+    static let secondaryBackground = Color.dynamic(
+        light: .white,
+        dark: Color(white: 0.12)
+    )
 
     // MARK: - Brand Identity (Celestial & Marine)
     static let celestialBlue = Color(red: 0.30, green: 0.65, blue: 0.96) // Clear bright sky blue
@@ -17,18 +43,33 @@ struct TPDesign {
 
     // MARK: - Semantic Text Colors (International Standard)
     static let textPrimary = obsidian
-    static let textSecondary = Color(white: 0.45)
-    static let textTertiary = Color(white: 0.7)
-    static let divider = Color(white: 0.88)
+    static let textSecondary = Color.dynamic(
+        light: Color(white: 0.45),
+        dark: Color(white: 0.65)
+    )
+    static let textTertiary = Color.dynamic(
+        light: Color(white: 0.7),
+        dark: Color(white: 0.4)
+    )
+    static let divider = Color.dynamic(
+        light: Color(white: 0.88),
+        dark: Color(white: 0.2)
+    )
 
     // MARK: - Shadow Palette (Layered Depth)
-    static let shadowUltraSoft = Color.black.opacity(0.04)
-    static let shadowSubtle = Color.black.opacity(0.08)
-    static let shadowDeep = Color.black.opacity(0.12)
+    static let shadowUltraSoft = Color.dynamic(light: .black.opacity(0.04), dark: .clear)
+    static let shadowSubtle = Color.dynamic(light: .black.opacity(0.08), dark: .black.opacity(0.3))
+    static let shadowDeep = Color.dynamic(light: .black.opacity(0.12), dark: .black.opacity(0.5))
 
     // MARK: - Cinematic Warm Palette (Vibe Tokens)
-    static let warmCream = Color(red: 0.99, green: 0.98, blue: 0.96)
-    static let warmSand = Color(red: 0.97, green: 0.95, blue: 0.91)
+    static let warmCream = Color.dynamic(
+        light: Color(red: 0.99, green: 0.98, blue: 0.96),
+        dark: Color(red: 0.08, green: 0.08, blue: 0.10) // Darker warm surface
+    )
+    static let warmSand = Color.dynamic(
+        light: Color(red: 0.97, green: 0.95, blue: 0.91),
+        dark: Color(red: 0.10, green: 0.10, blue: 0.12)
+    )
     static let warmGold = Color(red: 0.82, green: 0.68, blue: 0.40)
     static let warmAmber = Color(red: 0.88, green: 0.60, blue: 0.25)
     static let deepNavy = Color(red: 0.04, green: 0.08, blue: 0.18)
@@ -37,6 +78,7 @@ struct TPDesign {
 
     // MARK: - Grid & Scale
     static let anamorphicRatio: CGFloat = 2.35 / 1.0
+    static let spacing2: CGFloat = 2
     static let spacing4: CGFloat = 4
     static let spacing8: CGFloat = 8
     static let spacing12: CGFloat = 12
@@ -53,7 +95,7 @@ struct TPDesign {
 
     // MARK: - Transitions (Liquid Gradient)
     static let backgroundGradient = LinearGradient(
-        colors: [warmCream, .white],
+        colors: [warmCream, isabelline],
         startPoint: .top,
         endPoint: .bottom
     )
@@ -131,6 +173,7 @@ struct TPDesign {
 
     static let shimmerAnimation = Animation.linear(duration: 2.5).repeatForever(autoreverses: false)
 }
+
 
 // MARK: - Liquid Shimmer Effect (iOS 26 Premium)
 
@@ -245,13 +288,14 @@ struct GlassCardModifier: ViewModifier {
                 RoundedRectangle(cornerRadius: cornerRadius)
                     .stroke(
                         LinearGradient(
-                            colors: [.white.opacity(0.4), .white.opacity(0.1)],
+                            colors: [TPDesign.obsidian.opacity(0.2), TPDesign.obsidian.opacity(0.05)],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
                         lineWidth: 0.5
                     )
             )
+
             .shadow(color: .black.opacity(0.02), radius: 1, x: 0, y: 1)
             .shadow(color: .black.opacity(0.04), radius: 8, x: 0, y: 4)
             .shadow(color: .black.opacity(0.06), radius: 20, x: 0, y: 10)
