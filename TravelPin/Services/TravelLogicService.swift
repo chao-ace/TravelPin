@@ -1,6 +1,7 @@
 import Foundation
 import SwiftData
 import CoreLocation
+import WeatherKit
 
 /// Service responsible for analyzing travel data and detecting logical inconsistencies.
 struct TravelLogicService {
@@ -165,6 +166,70 @@ struct TravelLogicService {
         )
     }
 
+    // MARK: - NowPlaying State (During-travel)
+
+    /// Computes the rich real-time state for the NowPlaying card.
+    static func getNowState(for travel: Travel) async -> NowState {
+        let focus = getFocus(for: travel)
+        let now = Date()
+
+        // Distance & suggested departure
+        var distanceToNext: Double? = nil
+        var suggestedDeparture: Date? = nil
+        if let current = focus.current, let next = focus.next,
+           let c1 = current.coordinate, let c2 = next.coordinate {
+            let l1 = CLLocation(latitude: c1.latitude, longitude: c1.longitude)
+            let l2 = CLLocation(latitude: c2.latitude, longitude: c2.longitude)
+            distanceToNext = l1.distance(from: l2)
+
+            // Estimate travel time at ~30 km/h average urban speed
+            let travelMinutes = (distanceToNext! / 1000.0) / 30.0 * 60.0
+            let currentDuration = TimeInterval((current.visitDuration ?? 60) * 60)
+            if let estimatedEnd = current.estimatedDate?.addingTimeInterval(currentDuration) {
+                // Suggest departure = estimated end - travel buffer (5 min margin)
+                suggestedDeparture = estimatedEnd.addingTimeInterval(-max(travelMinutes, 5) * 60)
+            }
+        }
+
+        // Weather
+        var temperature: Double? = nil
+        var clothingHint: String? = nil
+        if let weather = IntelligenceService.shared.currentWeather {
+            temperature = weather.temperature
+        } else if let spot = focus.current ?? focus.next, let coord = spot.coordinate {
+            // Try fetching weather on-the-fly
+            let weather = await IntelligenceService.shared.fetchWeatherForSpot(coord: coord)
+            temperature = weather?.temperature
+        }
+        if let temp = temperature {
+            if temp < 5 { clothingHint = "now.clothing.very_cold".localized }
+            else if temp < 15 { clothingHint = "now.clothing.cold".localized }
+            else if temp > 35 { clothingHint = "now.clothing.hot".localized }
+            else if temp > 28 { clothingHint = "now.clothing.warm".localized }
+        }
+
+        // Fatigue (HealthKit steps)
+        let steps = await IntelligenceService.shared.fetchStepCount()
+        let fatigue: NowState.FatigueLevel = steps > 15000 ? .high : (steps > 8000 ? .moderate : .low)
+
+        // Progress
+        let visited = travel.visitedSpotCount
+        let total = travel.spots.filter { $0.status != .cancelled }.count
+
+        return NowState(
+            currentTime: now,
+            currentSpot: focus.current,
+            nextSpot: focus.next,
+            distanceToNext: distanceToNext,
+            suggestedDepartureTime: suggestedDeparture,
+            temperature: temperature,
+            clothingHint: clothingHint,
+            fatigueLevel: fatigue,
+            progressVisited: visited,
+            progressTotal: total
+        )
+    }
+
     // MARK: - Auto Status Transition
 
     /// Automatically transitions travel status based on current date:
@@ -192,5 +257,112 @@ struct TravelLogicService {
         }
 
         try? context.save()
+    }
+
+    // MARK: - Schedule Fix Suggestions (Pre-travel / During-travel)
+
+    /// Generates actionable fix suggestions for detected logic alerts.
+    static func suggestFixes(for travel: Travel, alerts: [LogicAlert]) -> [ScheduleFix] {
+        return alerts.compactMap { alert in
+            buildFix(for: alert, in: travel)
+        }
+    }
+
+    private static func buildFix(for alert: LogicAlert, in travel: Travel) -> ScheduleFix? {
+        let spotIds = alert.relatedSpotIds
+        guard !spotIds.isEmpty else { return nil }
+
+        // Determine fix type from alert title
+        let isTimeOverlap = alert.title.contains("重叠")
+        let isDistance = alert.title.contains("交通") || alert.title.contains("距离")
+
+        if isTimeOverlap {
+            // Suggest shifting the later spot
+            var actions: [FixAction] = []
+            if spotIds.count >= 2 {
+                actions.append(FixAction(
+                    title: "logic.fix.shift".localized,
+                    subtitle: "logic.fix.shift.desc".localized,
+                    icon: "clock.arrow.circlepath",
+                    actionType: .shiftLater(spotId: spotIds[1], minutes: 30)
+                ))
+                actions.append(FixAction(
+                    title: "logic.fix.skip".localized,
+                    subtitle: "logic.fix.skip.desc".localized,
+                    icon: "forward.end.fill",
+                    actionType: .skipSpot(spotId: spotIds[1])
+                ))
+            }
+            return ScheduleFix(
+                alertTitle: alert.title,
+                alertMessage: alert.message,
+                fixType: .timeOverlap,
+                actions: actions
+            )
+        }
+
+        if isDistance {
+            var actions: [FixAction] = []
+            actions.append(FixAction(
+                title: "logic.fix.skip".localized,
+                subtitle: "logic.fix.skip.desc".localized,
+                icon: "forward.end.fill",
+                actionType: .skipSpot(spotId: spotIds.last ?? spotIds[0])
+            ))
+            actions.append(FixAction(
+                title: "logic.fix.reorder".localized,
+                subtitle: "logic.fix.reorder.desc".localized,
+                icon: "arrow.up.arrow.down",
+                actionType: .swapWithAlternative(originalSpotId: spotIds.last ?? spotIds[0])
+            ))
+            return ScheduleFix(
+                alertTitle: alert.title,
+                alertMessage: alert.message,
+                fixType: .distanceTooFar,
+                actions: actions
+            )
+        }
+
+        return nil
+    }
+
+    // MARK: - Template Extraction (Post-travel)
+
+    /// Extracts a reusable template from a completed trip.
+    static func generateTemplate(from travel: Travel) -> TripTemplate {
+        let metrics = TemplateMetrics(
+            completionRate: travel.spots.isEmpty ? 0 : Double(travel.visitedSpotCount) / Double(travel.spots.count),
+            budgetUtilization: travel.budget.map { travel.totalSpent / $0 },
+            avgRating: {
+                let ratings = travel.spots.compactMap { $0.rating }
+                return ratings.isEmpty ? nil : Double(ratings.reduce(0, +)) / Double(ratings.count)
+            }(),
+            totalSpots: travel.spots.count,
+            visitedSpots: travel.visitedSpotCount
+        )
+
+        let dayPlans = travel.itineraries.sorted { $0.day < $1.day }.map { itinerary in
+            TemplateDayPlan(day: itinerary.day, spotTemplates: itinerary.spots.sorted { $0.sequence < $1.sequence }.map { spot in
+                TemplateSpot(
+                    name: spot.name,
+                    type: spot.type,
+                    latitude: spot.latitude,
+                    longitude: spot.longitude,
+                    address: spot.address,
+                    suggestedDuration: spot.visitDuration
+                )
+            })
+        }
+
+        return TripTemplate(
+            sourceTravelId: travel.id,
+            name: travel.name,
+            type: travel.type,
+            durationDays: travel.durationDays,
+            dayPlans: dayPlans,
+            budget: travel.budget,
+            currency: travel.currency,
+            successMetrics: metrics
+        )
     }
 }

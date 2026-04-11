@@ -33,12 +33,16 @@ final class Travel {
     var endDate: Date = Date().addingTimeInterval(86400 * 3)
 
     // MARK: - Finance & Budget (Logical Core)
-    
+
     /// User-defined budget for the entire trip.
     var budget: Double?
-    
+
     /// ISO 4217 Currency code (e.g. "CNY", "USD").
     var currency: String = "CNY"
+
+    /// Budget allocation by category. Keys are BudgetCategory raw values.
+    /// Example: ["Transport": 500.0, "Food": 300.0, "Accommodation": 800.0]
+    var budgetBreakdown: [String: Double] = [:]
 
     // MARK: Status & Type (Raw Storage)
 
@@ -167,6 +171,11 @@ extension Travel {
     /// Total actual spending across all spots.
     var totalSpent: Double {
         spots.reduce(0.0) { $0 + ($1.cost ?? 0.0) }
+    }
+
+    /// Sum of all allocated budget categories.
+    var allocatedBudgetTotal: Double {
+        budgetBreakdown.values.reduce(0, +)
     }
 }
 

@@ -55,7 +55,7 @@ struct DashboardView: View {
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showingAddTravel) {
-                AddTravelView()
+                AddTravelWizardView()
                     .environment(\.modelContext, modelContext)
             }
             .sheet(isPresented: $showingDNA) {

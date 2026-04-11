@@ -5,8 +5,8 @@ import SwiftData
 // MARK: - Spot Check-In View
 
 /// A compact card/sheet for confirming arrival at a spot.
-/// Sets `spot.status = .travelled`, records `actualDate`, and optionally
-/// attaches a quick photo before calling `onCheckIn()`.
+/// Sets `spot.status = .travelled`, records `actualDate`, auto-captures weather,
+/// and optionally attaches a quick photo before calling `onCheckIn()`.
 struct SpotCheckInView: View {
 
     // MARK: - Parameters
@@ -29,6 +29,10 @@ struct SpotCheckInView: View {
     @State private var isCheckingIn = false
     @State private var showConfetti = false
 
+    // Auto-captured weather data
+    @State private var autoTemperature: Double?
+    @State private var autoWeatherCondition: String?
+
     // MARK: - Body
 
     var body: some View {
@@ -43,6 +47,13 @@ struct SpotCheckInView: View {
             spotInfoSection
                 .padding(.horizontal, 24)
                 .padding(.bottom, 20)
+
+            // MARK: Weather Badge (auto-captured)
+            if autoTemperature != nil || autoWeatherCondition != nil {
+                weatherBadge
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 16)
+            }
 
             // MARK: Quick Notes
             quickNotesSection
@@ -66,6 +77,7 @@ struct SpotCheckInView: View {
         .onAppear {
             animateArrival()
             TPHaptic.notification(.success)
+            captureWeatherData()
         }
         .onChange(of: selectedPhotoItem) { _, newItem in
             guard let newItem else { return }
@@ -127,7 +139,52 @@ struct SpotCheckInView: View {
             .padding(.vertical, 6)
             .background(TPDesign.celestialBlue.opacity(0.1))
             .clipShape(Capsule())
+
+            // Suggested visit duration hint
+            if let duration = spot.visitDuration {
+                HStack(spacing: 4) {
+                    Image(systemName: "clock")
+                        .font(.system(size: 10))
+                    Text(String(format: "checkin.duration.hint".localized, duration))
+                        .font(.system(size: 11, weight: .medium))
+                }
+                .foregroundStyle(TPDesign.textTertiary)
+                .padding(.top, 4)
+            }
         }
+    }
+
+    // MARK: - Weather Badge
+
+    private var weatherBadge: some View {
+        HStack(spacing: 8) {
+            Image(systemName: temperatureIcon(autoTemperature ?? 20))
+                .font(.system(size: 14))
+                .foregroundStyle(TPDesign.celestialBlue)
+
+            if let temp = autoTemperature {
+                Text(String(format: "%.0f°C", temp))
+                    .font(TPDesign.bodyFont(14, weight: .medium))
+            }
+
+            if let condition = autoWeatherCondition {
+                Text("·")
+                    .foregroundStyle(.tertiary)
+                Text(condition)
+                    .font(TPDesign.captionFont())
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Text("checkin.weather.auto".localized)
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(.tertiary)
+                .textCase(.uppercase)
+        }
+        .padding(12)
+        .background(TPDesign.celestialBlue.opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     // MARK: - Quick Notes
@@ -202,6 +259,27 @@ struct SpotCheckInView: View {
         }
     }
 
+    // MARK: - Weather Auto-Capture
+
+    private func captureWeatherData() {
+        Task {
+            // Try IntelligenceService's cached weather first
+            if let weather = IntelligenceService.shared.currentWeather {
+                autoTemperature = weather.temperature
+                autoWeatherCondition = weather.condition
+                return
+            }
+
+            // Fallback: fetch directly for this spot's location
+            if let coord = spot.coordinate {
+                if let weather = await IntelligenceService.shared.fetchWeatherForSpot(coord: coord) {
+                    autoTemperature = weather.temperature
+                    autoWeatherCondition = weather.condition
+                }
+            }
+        }
+    }
+
     // MARK: - Actions
 
     private func performCheckIn() {
@@ -211,6 +289,10 @@ struct SpotCheckInView: View {
         // Update spot status
         spot.status = .travelled
         spot.actualDate = Date()
+
+        // Auto-capture weather data into the spot model
+        spot.arrivalTemperature = autoTemperature
+        spot.arrivalWeatherCondition = autoWeatherCondition
 
         // Attach quick notes if provided
         if !quickNotes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -241,5 +323,14 @@ struct SpotCheckInView: View {
             try? modelContext.save()
             TPHaptic.selection()
         }
+    }
+
+    // MARK: - Helpers
+
+    private func temperatureIcon(_ temp: Double) -> String {
+        if temp < 5 { return "snowflake" }
+        else if temp < 15 { return "cloud" }
+        else if temp < 28 { return "sun.max" }
+        else { return "thermometer.sun" }
     }
 }

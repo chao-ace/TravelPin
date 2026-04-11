@@ -58,6 +58,11 @@ final class Spot {
     /// Planned visit duration in minutes.
     var visitDuration: Int?
 
+    /// Temperature in Celsius at the time of check-in (auto-captured).
+    var arrivalTemperature: Double?
+    /// Weather condition description at check-in (e.g. "Sunny", "Rainy").
+    var arrivalWeatherCondition: String?
+
     // MARK: - Media Attachments
 
     /// Remote photo URLs (populated after cloud sync).

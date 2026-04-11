@@ -120,7 +120,7 @@ class IntelligenceService: ObservableObject {
 
     // MARK: - HealthKit
 
-    private func fetchStepCount() async -> Int {
+    func fetchStepCount() async -> Int {
         guard HKHealthStore.isHealthDataAvailable() else { return 0 }
 
         let stepType = HKQuantityType(.stepCount)
@@ -147,6 +147,25 @@ class IntelligenceService: ObservableObject {
     }
 
     // MARK: - WeatherKit
+
+    /// Fetches weather for a single coordinate and returns a WeatherInfo (for NowPlaying / check-in use).
+    func fetchWeatherForSpot(coord: CLLocationCoordinate2D) async -> WeatherInfo? {
+        guard let weather = await fetchWeather(for: coord) else { return nil }
+        let current = weather.currentWeather
+        return WeatherInfo(
+            temperature: current.temperature.value,
+            condition: current.condition.description,
+            isRainy: current.condition.description.contains("Rain") || current.condition.description.contains("雨"),
+            hourlyForecast: weather.hourlyForecast.prefix(6).map { forecast in
+                HourForecast(
+                    time: forecast.date,
+                    temperature: forecast.temperature.value,
+                    condition: forecast.condition.description,
+                    precipitationChance: forecast.precipitationChance
+                )
+            }
+        )
+    }
 
     private func fetchWeather(for coordinate: CLLocationCoordinate2D) async -> Weather? {
         do {

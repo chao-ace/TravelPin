@@ -32,6 +32,7 @@ struct TravelDetailView: View {
 
     @State private var showingAIItinerary = false
     @State private var showingCheckIn = false
+    @State private var showingBudgetBreakdown = false
     @State private var isFABExpanded = false
 
     var body: some View {
@@ -719,12 +720,44 @@ struct TravelDetailView: View {
                         .fontWeight(.bold)
                         .foregroundStyle(budget >= travel.totalSpent ? .green : .red)
                 }
+
+                // Link to detailed breakdown
+                if travel.budget != nil {
+                    Button {
+                        showingBudgetBreakdown = true
+                    } label: {
+                        Image(systemName: "chart.pie")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(Color.tpAccent)
+                            .frame(width: 36, height: 36)
+                            .background(Circle().fill(Color.tpAccent.opacity(0.1)))
+                    }
+                    .buttonStyle(.plain)
+                }
             }
             .padding(.horizontal, 24)
-            
+
+            // Budget warning bar
+            if let budget = travel.budget, budget > 0, travel.totalSpent > budget * 0.8 {
+                HStack(spacing: 8) {
+                    Image(systemName: travel.totalSpent > budget ? "exclamationmark.triangle.fill" : "exclamationmark.circle")
+                        .foregroundStyle(travel.totalSpent > budget ? TPDesign.leicaRed : TPDesign.warmAmber)
+                    Text(travel.totalSpent > budget
+                         ? String(format: "budget.warning.over".localized, String(format: "%.0f", travel.totalSpent - budget))
+                         : "budget.warning.near".localized)
+                        .font(TPDesign.bodyFont(13))
+                        .foregroundStyle(travel.totalSpent > budget ? TPDesign.leicaRed : TPDesign.warmAmber)
+                }
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background((travel.totalSpent > budget ? TPDesign.leicaRed : TPDesign.warmAmber).opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal, 24)
+            }
+
             HStack(spacing: 16) {
                 let insight = TravelLogicService.generateInsight(for: travel)
-                
+
                 VStack(alignment: .leading, spacing: 8) {
                     Text(locKey: "logic.stat.cost_per_km")
                         .font(TPDesign.overline())
@@ -736,7 +769,7 @@ struct TravelDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(TPDesign.secondaryBackground)
                 .clipShape(RoundedRectangle(cornerRadius: 24))
-                
+
                 VStack(alignment: .leading, spacing: 8) {
                     Text(locKey: "logic.stat.budget_usage")
                         .font(TPDesign.overline())
@@ -750,8 +783,35 @@ struct TravelDetailView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 24))
             }
             .padding(.horizontal, 24)
+
+            // Budget breakdown preview (compact)
+            if !travel.budgetBreakdown.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(BudgetCategory.allCases.filter { travel.budgetBreakdown[$0.rawValue] != nil }, id: \.self) { cat in
+                            if let amount = travel.budgetBreakdown[cat.rawValue] {
+                                HStack(spacing: 4) {
+                                    Image(systemName: cat.icon)
+                                        .font(.system(size: 10))
+                                    Text("\(cat.displayName) \(String(format: "%.0f", amount))")
+                                        .font(.system(size: 11, weight: .medium))
+                                }
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(TPDesign.secondaryBackground)
+                                .clipShape(Capsule())
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                }
+            }
         }
         .cinematicFadeIn(delay: 0.6)
+        .sheet(isPresented: $showingBudgetBreakdown) {
+            BudgetBreakdownView(travel: travel)
+        }
     }
 
     // MARK: - Route Tracking

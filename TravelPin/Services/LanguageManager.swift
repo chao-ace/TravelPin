@@ -737,7 +737,99 @@ class LanguageManager: ObservableObject {
         "tracking.action.start": [.english: "Start Tracking", .simplifiedChinese: "开始记录"],
         "tracking.action.stop": [.english: "Stop & Save", .simplifiedChinese: "停止并保存"],
         "tracking.action.replay": [.english: "Replay Route", .simplifiedChinese: "回放路线"],
-        "tracking.action.import": [.english: "Import from Clipboard", .simplifiedChinese: "从剪贴板导入攻略"]
+        "tracking.action.import": [.english: "Import from Clipboard", .simplifiedChinese: "从剪贴板导入攻略"],
+
+        // MARK: - NowPlaying Card
+        "now.playing.title": [.english: "NOW PLAYING", .simplifiedChinese: "此刻"],
+        "now.playing.free_time": [.english: "Free time", .simplifiedChinese: "自由活动时间"],
+        "now.playing.next": [.english: "UP NEXT", .simplifiedChinese: "下一站"],
+        "now.playing.no_weather": [.english: "Weather unavailable", .simplifiedChinese: "天气暂无"],
+        "now.fatigue.low": [.english: "Energetic", .simplifiedChinese: "精力充沛"],
+        "now.fatigue.moderate": [.english: "Moderate", .simplifiedChinese: "略有疲惫"],
+        "now.fatigue.high": [.english: "Tired", .simplifiedChinese: "较为疲惫"],
+        "now.clothing.very_cold": [.english: "Heavy coat recommended", .simplifiedChinese: "建议穿厚外套"],
+        "now.clothing.cold": [.english: "Jacket recommended", .simplifiedChinese: "建议带外套"],
+        "now.clothing.warm": [.english: "Sun protection", .simplifiedChinese: "建议防晒"],
+        "now.clothing.hot": [.english: "Stay cool & hydrated", .simplifiedChinese: "注意防暑降温"],
+
+        // MARK: - Wizard Flow
+        "wizard.title": [.english: "New Journey", .simplifiedChinese: "新建旅程"],
+        "wizard.next": [.english: "Continue", .simplifiedChinese: "继续"],
+        "wizard.back": [.english: "Back", .simplifiedChinese: "上一步"],
+        "wizard.create": [.english: "Create Journey", .simplifiedChinese: "创建旅程"],
+        "wizard.type.recommended": [.english: "For You", .simplifiedChinese: "为你推荐"],
+
+        // Wizard Step 1
+        "wizard.step1.title": [.english: "Name Your Journey", .simplifiedChinese: "给旅程起个名字"],
+        "wizard.step1.subtitle": [.english: "Start with a name and pick your travel style", .simplifiedChinese: "从名字开始，选择你的旅行风格"],
+        "wizard.step1.name_section": [.english: "Journey Name", .simplifiedChinese: "旅程名称"],
+        "wizard.step1.type_section": [.english: "Travel Style", .simplifiedChinese: "旅行风格"],
+
+        // Wizard Step 2
+        "wizard.step2.title": [.english: "When Are You Going?", .simplifiedChinese: "什么时候出发？"],
+        "wizard.step2.subtitle": [.english: "Pick your travel dates or use quick presets", .simplifiedChinese: "选择出行日期或使用快捷预设"],
+        "wizard.step2.quick": [.english: "Quick Select", .simplifiedChinese: "快捷选择"],
+        "wizard.step2.custom": [.english: "Custom Dates", .simplifiedChinese: "自定义日期"],
+        "wizard.step2.duration": [.english: "%d days", .simplifiedChinese: "%d 天"],
+        "wizard.dates.this_weekend": [.english: "This Weekend", .simplifiedChinese: "本周末"],
+        "wizard.dates.next_week": [.english: "Next Week", .simplifiedChinese: "下周"],
+        "wizard.dates.next_month": [.english: "Next Month", .simplifiedChinese: "下个月"],
+        "wizard.dates.custom": [.english: "Custom", .simplifiedChinese: "自定义"],
+
+        // Wizard Step 3
+        "wizard.step3.title": [.english: "Set Your Budget", .simplifiedChinese: "设定预算"],
+        "wizard.step3.subtitle": [.english: "Optional — helps track spending during your trip", .simplifiedChinese: "可选 — 帮助旅途中追踪花费"],
+        "wizard.step3.smart": [.english: "Smart Allocation", .simplifiedChinese: "智能分配"],
+        "wizard.step3.over_budget": [.english: "Over budget by %.0f", .simplifiedChinese: "超出预算 %.0f"],
+
+        // Wizard Step 4
+        "wizard.step4.title": [.english: "All Set!", .simplifiedChinese: "一切就绪！"],
+        "wizard.step4.subtitle": [.english: "Review your journey before creating", .simplifiedChinese: "创建前确认你的旅程信息"],
+        "wizard.step4.untitled": [.english: "Untitled Journey", .simplifiedChinese: "未命名旅程"],
+        "wizard.step4.tip1": [.english: "You can add itinerary details after creation", .simplifiedChinese: "创建后可以随时添加行程细节"],
+        "wizard.step4.tip2": [.english: "AI can help generate an itinerary for you", .simplifiedChinese: "AI 可以帮你智能生成行程"],
+
+        // MARK: - Budget Categories
+        "budget.category.transport": [.english: "Transport", .simplifiedChinese: "交通"],
+        "budget.category.accommodation": [.english: "Accommodation", .simplifiedChinese: "住宿"],
+        "budget.category.food": [.english: "Food", .simplifiedChinese: "餐饮"],
+        "budget.category.tickets": [.english: "Tickets", .simplifiedChinese: "门票"],
+        "budget.category.shopping": [.english: "Shopping", .simplifiedChinese: "购物"],
+        "budget.category.other": [.english: "Other", .simplifiedChinese: "其他"],
+
+        // Budget Breakdown
+        "budget.breakdown.title": [.english: "Budget Details", .simplifiedChinese: "预算详情"],
+        "budget.breakdown.total": [.english: "Total Budget", .simplifiedChinese: "总预算"],
+        "budget.breakdown.spent": [.english: "Spent: %.0f", .simplifiedChinese: "已花费: %.0f"],
+        "budget.breakdown.remaining": [.english: "Remaining: %.0f", .simplifiedChinese: "剩余: %.0f"],
+        "budget.breakdown.categories": [.english: "Category Breakdown", .simplifiedChinese: "分类明细"],
+        "budget.breakdown.by_type": [.english: "Spending by Activity Type", .simplifiedChinese: "按活动类型花费"],
+        "budget.breakdown.no_spending": [.english: "No spending recorded yet", .simplifiedChinese: "暂无花费记录"],
+        "budget.warning.over": [.english: "Over budget by %.0f!", .simplifiedChinese: "超支 %.0f！"],
+        "budget.warning.near": [.english: "Approaching budget limit", .simplifiedChinese: "接近预算上限"],
+
+        // MARK: - Logic Fixes
+        "logic.fix.title": [.english: "Fix Schedule", .simplifiedChinese: "修复日程"],
+        "logic.fix.action": [.english: "Fix", .simplifiedChinese: "修复"],
+        "logic.fix.shift": [.english: "Push Back", .simplifiedChinese: "延后30分钟"],
+        "logic.fix.shift.desc": [.english: "Shift this spot later by 30 minutes", .simplifiedChinese: "将该景点时间延后30分钟"],
+        "logic.fix.skip": [.english: "Skip", .simplifiedChinese: "跳过"],
+        "logic.fix.skip.desc": [.english: "Remove from today's plan", .simplifiedChinese: "从今日计划中移除"],
+        "logic.fix.reorder": [.english: "Optimize Route", .simplifiedChinese: "优化路线"],
+        "logic.fix.reorder.desc": [.english: "Reorder spots for better flow", .simplifiedChinese: "重新排序景点以优化路线"],
+        "logic.fix.indoor_note": [.english: "Consider indoor alternative", .simplifiedChinese: "考虑室内替代方案"],
+
+        // Post-trip
+        "logic.post.similar": [.english: "Plan Similar Trip", .simplifiedChinese: "规划类似旅行"],
+        "logic.post.similar_name": [.english: "Like %@", .simplifiedChinese: "类似 %@"],
+        "logic.post.metrics": [.english: "TRIP METRICS", .simplifiedChinese: "旅行指标"],
+        "logic.metric.completion": [.english: "Completion", .simplifiedChinese: "完成率"],
+        "logic.metric.budget": [.english: "Budget", .simplifiedChinese: "预算"],
+        "logic.metric.rating": [.english: "Rating", .simplifiedChinese: "评分"],
+
+        // Check-in enhancements
+        "checkin.weather.auto": [.english: "AUTO CAPTURED", .simplifiedChinese: "自动捕获"],
+        "checkin.duration.hint": [.english: "Suggested %d min", .simplifiedChinese: "建议停留 %d 分钟"]
     ]
 }
 
