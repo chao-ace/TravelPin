@@ -11,6 +11,9 @@ struct TravelMapView: View {
     @State private var showDownloadSuccess = false
     @State private var downloadedTiles = 0
     @State private var showClearConfirm = false
+    @State private var transportType: MKDirectionsTransportType = .automobile
+    @State private var showOptimizeConfirm = false
+    @State private var isOptimizing = false
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
@@ -19,6 +22,37 @@ struct TravelMapView: View {
 
             // Map Controls
             VStack(spacing: 12) {
+                // Transport Type Toggle
+                HStack(spacing: 0) {
+                    Button {
+                        TPHaptic.selection()
+                        transportType = .automobile
+                    } label: {
+                        Image(systemName: "car.fill")
+                            .font(.system(size: 14, weight: transportType == .automobile ? .bold : .regular))
+                            .foregroundStyle(transportType == .automobile ? .white : .primary)
+                            .frame(width: 36, height: 36)
+                            .background(transportType == .automobile ? Color.tpAccent : .clear)
+                            .clipShape(Capsule())
+                    }
+
+                    Button {
+                        TPHaptic.selection()
+                        transportType = .walking
+                    } label: {
+                        Image(systemName: "figure.walk")
+                            .font(.system(size: 14, weight: transportType == .walking ? .bold : .regular))
+                            .foregroundStyle(transportType == .walking ? .white : .primary)
+                            .frame(width: 36, height: 36)
+                            .background(transportType == .walking ? Color.tpAccent : .clear)
+                            .clipShape(Capsule())
+                    }
+                }
+                .padding(.horizontal, 4)
+                .padding(.vertical, 4)
+                .background(TPDesign.secondaryBackground.opacity(0.6).background(.ultraThinMaterial))
+                .clipShape(Capsule())
+
                 // Offline Mode Toggle
                 Button(action: {
                     TPHaptic.selection()
@@ -69,6 +103,27 @@ struct TravelMapView: View {
                 }
                 .disabled(isDownloading)
 
+                // Route Optimization Button
+                if travel.spots.filter({ $0.hasLocation }).count >= 3 {
+                    Button {
+                        showOptimizeConfirm = true
+                    } label: {
+                        if isOptimizing {
+                            ProgressView()
+                                .tint(.primary)
+                                .frame(width: 20, height: 20)
+                                .padding(10)
+                        } else {
+                            Image(systemName: "point.topleft.down.to.point.bottomright.curvepath")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(TPDesign.celestialBlue)
+                                .padding(10)
+                        }
+                    }
+                    .background(TPDesign.secondaryBackground.opacity(0.6).background(.ultraThinMaterial))
+                    .clipShape(Capsule())
+                }
+
                 // Clear Cache Button (only in offline mode)
                 if isOfflineMode {
                     Button(action: { showClearConfirm = true }) {
@@ -106,6 +161,14 @@ struct TravelMapView: View {
             Button("common.cancel".localized, role: .cancel) { }
         } message: {
             Text(String(format: "map.alert.clear_cache.message".localized, MapTileManager.shared.cacheSizeDescription))
+        }
+        .confirmationDialog("map.alert.optimize_route.title".localized, isPresented: $showOptimizeConfirm) {
+            Button("map.action.optimize".localized) {
+                optimizeRoute()
+            }
+            Button("common.cancel".localized, role: .cancel) { }
+        } message: {
+            Text(String(format: "map.alert.optimize_route.message".localized, travel.spots.filter { $0.hasLocation }.count))
         }
     }
 
@@ -182,5 +245,22 @@ struct TravelMapView: View {
             .padding()
         }
         .glassCard(cornerRadius: 0)
+    }
+
+    // MARK: - Route Optimization
+
+    private func optimizeRoute() {
+        isOptimizing = true
+        Task {
+            let optimized = await LocationService.shared.optimizeRouteWithDistances(spots: travel.spots)
+            await MainActor.run {
+                for (index, spot) in optimized.enumerated() {
+                    spot.sequence = index + 1
+                }
+                isOptimizing = false
+                TPHaptic.notification(.success)
+                ToastManager.shared.show(type: .success, message: "map.toast.route_optimized".localized)
+            }
+        }
     }
 }

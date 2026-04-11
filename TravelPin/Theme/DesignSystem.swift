@@ -41,6 +41,20 @@ struct TPDesign {
     static let accent = celestialBlue
     static let background = isabelline
 
+    // MARK: - Surface Token System (3-Level Material Hierarchy)
+
+    /// Surface-0: Page background — the deepest layer
+    static let surface0 = background
+
+    /// Surface-1: Cards, search bars, form sections — the workhorse surface
+    static let surface1 = secondaryBackground
+
+    /// Surface-2: Floating panels, sheets, overlays — highest elevation
+    static let surface2 = Color.dynamic(
+        light: Color.white.opacity(0.95),
+        dark: Color(white: 0.15)
+    )
+
     // MARK: - Semantic Text Colors (International Standard)
     static let textPrimary = obsidian
     static let textSecondary = Color.dynamic(

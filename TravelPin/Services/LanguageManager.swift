@@ -112,6 +112,12 @@ class LanguageManager: ObservableObject {
         "dashboard.empty.title": [.english: "A New Chapter Awaits", .simplifiedChinese: "新篇章正待开启"],
         "dashboard.empty.subtitle": [.english: "Start your first journey to see your footprint review.", .simplifiedChinese: "开启第一场旅程，查看您的足迹回顾。"],
         "dashboard.empty.button": [.english: "Create Journey", .simplifiedChinese: "开启旅程"],
+        "dashboard.guide.create.title": [.english: "Create a Journey", .simplifiedChinese: "创建一段旅程"],
+        "dashboard.guide.create.desc": [.english: "Name your dream destination and set the dates", .simplifiedChinese: "为梦想目的地命名，设定出发日期"],
+        "dashboard.guide.footprint.title": [.english: "View Footprints", .simplifiedChinese: "查看旅行足迹"],
+        "dashboard.guide.footprint.desc": [.english: "Review your travel stats and journey map", .simplifiedChinese: "回顾旅行统计和足迹图谱"],
+        "dashboard.guide.inspiration.title": [.english: "Explore Inspirations", .simplifiedChinese: "探索旅行灵感"],
+        "dashboard.guide.inspiration.desc": [.english: "Discover curated journeys from the community", .simplifiedChinese: "发现来自社区的精选旅程"],
         "dashboard.featured.badge": [.english: "Featured Trip", .simplifiedChinese: "精选回顾"],
         "dashboard.action.all": [.english: "All Journeys", .simplifiedChinese: "全部旅程"],
         "dashboard.action.view_all": [.english: "View All Journeys", .simplifiedChinese: "查看全部旅程"],
@@ -360,6 +366,17 @@ class LanguageManager: ObservableObject {
         "luggage.tpl.bottle": [.english: "Water Bottle", .simplifiedChinese: "水杯"],
         "luggage.tpl.tissue": [.english: "Tissue/Wipes", .simplifiedChinese: "纸巾/湿巾"],
 
+        // Luggage Categories
+        "luggage.category.clothes": [.english: "Clothes", .simplifiedChinese: "衣物"],
+        "luggage.category.products": [.english: "Toiletries", .simplifiedChinese: "洗护用品"],
+        "luggage.category.electronics": [.english: "Electronics", .simplifiedChinese: "电子设备"],
+        "luggage.category.essentials": [.english: "Essentials", .simplifiedChinese: "必备证件"],
+        "luggage.category.other": [.english: "Other", .simplifiedChinese: "其他"],
+
+        // Luggage Weather
+        "luggage.weather.title": [.english: "Destination Weather", .simplifiedChinese: "目的地天气"],
+        "luggage.weather.unavailable": [.english: "Add spots with location to see weather", .simplifiedChinese: "添加带位置的景点后可查看天气"],
+
 
         // Spot Types
         "spot.type.food": [.english: "Food", .simplifiedChinese: "美食"],
@@ -507,7 +524,220 @@ class LanguageManager: ObservableObject {
 
         // Settings — About (section keys)
         "settings.about": [.english: "About", .simplifiedChinese: "关于"],
-        "settings.about.quote": [.english: "To Explore, To Experience, To Exist.", .simplifiedChinese: "去探索，去体验，去存在。"]
+        "settings.about.quote": [.english: "To Explore, To Experience, To Exist.", .simplifiedChinese: "去探索，去体验，去存在。"],
+
+        // Logic Closed Loop
+        "logic.plan.alert.title": [.english: "Trip Logic Alert", .simplifiedChinese: "行程逻辑提醒"],
+        "logic.plan.conflict.time": [.english: "Schedule Overlap", .simplifiedChinese: "行程重叠"],
+        "logic.plan.conflict.spatial": [.english: "Transit Logic Warning", .simplifiedChinese: "交通逻辑预警"],
+        "logic.active.now": [.english: "Now Playing", .simplifiedChinese: "正在进行"],
+        "logic.active.next": [.english: "Next Up", .simplifiedChinese: "下一站"],
+        "logic.active.empty": [.english: "No logic available", .simplifiedChinese: "当前无行程"],
+        "logic.active.start_day": [.english: "Start your day", .simplifiedChinese: "开启新的一天吧"],
+        "logic.post.title": [.english: "Journey Concluded", .simplifiedChinese: "旅途圆满结束"],
+        "logic.post.subtitle": [.english: "Review your footprints", .simplifiedChinese: "回顾你的足迹"],
+        "logic.stat.cost": [.english: "Total Cost", .simplifiedChinese: "累计开销"],
+        "logic.stat.distance": [.english: "Distance Traveled", .simplifiedChinese: "穿行距离"],
+        "logic.stat.rate": [.english: "Completion Rate", .simplifiedChinese: "完成率"],
+        "logic.stat.cost_per_km": [.english: "Cost per KM", .simplifiedChinese: "每公里成本"],
+        "logic.stat.budget_usage": [.english: "Budget Usage", .simplifiedChinese: "预算执行率"],
+        
+        // Budget & Export
+        "detail.menu.export_trail": [.english: "Export Logic Trail", .simplifiedChinese: "导出逻辑长图"],
+        "export.long_trail.title": [.english: "Journey Logic Trail", .simplifiedChinese: "旅途逻辑长图"],
+        "detail.budget.title": [.english: "Budget Analytics", .simplifiedChinese: "预算智能分析"],
+        "detail.budget.left": [.english: "Budget Left: ¥%.0f", .simplifiedChinese: "剩余预算: ¥%.0f"],
+        "LOGIC.STAT.DISTANCE": [.english: "DISTANCE", .simplifiedChinese: "穿行距离"],
+        "LOGIC.STAT.COST": [.english: "TOTAL COST", .simplifiedChinese: "累计支出"],
+        "LOGIC.STAT.RATE": [.english: "TARGET RATE", .simplifiedChinese: "目标达成"],
+
+        // AI Itinerary Generation
+        "ai.itinerary.title": [.english: "AI Itinerary Planner", .simplifiedChinese: "AI 智能行程规划"],
+        "ai.itinerary.generate": [.english: "Generate Itinerary", .simplifiedChinese: "生成行程"],
+        "ai.itinerary.adopt": [.english: "Adopt", .simplifiedChinese: "采纳"],
+        "ai.itinerary.adopt_all": [.english: "Adopt All", .simplifiedChinese: "全部采纳"],
+        "ai.itinerary.day_plan": [.english: "Day %d Plan", .simplifiedChinese: "第 %d 天计划"],
+        "ai.itinerary.loading": [.english: "AI is planning your itinerary...", .simplifiedChinese: "AI 正在规划行程..."],
+        "ai.itinerary.error": [.english: "Generation failed. Please try again.", .simplifiedChinese: "生成失败，请重试"],
+        "ai.itinerary.spots": [.english: "Suggested Spots", .simplifiedChinese: "推荐景点"],
+
+        // Weather Overlay
+        "weather.overlay.temp": [.english: "%.0f°C", .simplifiedChinese: "%.0f°C"],
+        "weather.overlay.rain_chance": [.english: "Rain Chance: %.0f%%", .simplifiedChinese: "降雨概率: %.0f%%"],
+        "weather.overlay.expanded": [.english: "WEATHER FORECAST", .simplifiedChinese: "天气预报"],
+        "weather.overlay.hourly": [.english: "HOURLY FORECAST", .simplifiedChinese: "逐时预报"],
+        "weather.overlay.now": [.english: "Now", .simplifiedChinese: "现在"],
+
+        // Footprint Heatmap
+        "footprint.heatmap.title": [.english: "Footprint Heatmap", .simplifiedChinese: "足迹热力图"],
+        "footprint.heatmap.subtitle": [.english: "Your footprint density heatmap", .simplifiedChinese: "你的足迹分布热力图"],
+        "footprint.heatmap.spots_count": [.english: "%d Spots", .simplifiedChinese: "%d 个足迹"],
+        "footprint.heatmap.cities": [.english: "%d Cities", .simplifiedChinese: "%d 个城市"],
+
+        // Annual Report
+        "annual.title": [.english: "%@ Annual Report", .simplifiedChinese: "%@ 年度报告"],
+        "annual.subtitle": [.english: "Your Year in Review", .simplifiedChinese: "你的旅行年度回顾"],
+        "annual.stat.trips": [.english: "Trips", .simplifiedChinese: "旅程"],
+        "annual.stat.spots": [.english: "Footprints", .simplifiedChinese: "足迹"],
+        "annual.stat.days": [.english: "On the Road", .simplifiedChinese: "在路上"],
+        "annual.stat.photos": [.english: "Photos", .simplifiedChinese: "照片"],
+        "annual.generate": [.english: "Generate AI Annual Summary", .simplifiedChinese: "生成 AI 年度总结"],
+        "annual.share": [.english: "Share Annual Report", .simplifiedChinese: "分享年度报告"],
+        "annual.generating": [.english: "AI is writing...", .simplifiedChinese: "AI 正在撰写..."],
+        "annual.top_trips": [.english: "Top Journeys", .simplifiedChinese: "年度精选"],
+        "annual.ai_summary": [.english: "AI Annual Summary", .simplifiedChinese: "AI 年度总结"],
+
+        // Budget & Calendar
+        "add.travel.budget": [.english: "Budget", .simplifiedChinese: "预算"],
+        "add.travel.budget.placeholder": [.english: "Estimated budget", .simplifiedChinese: "预估预算"],
+        "add.travel.currency": [.english: "Currency", .simplifiedChinese: "币种"],
+        "add.travel.calendar": [.english: "Calendar", .simplifiedChinese: "日历"],
+        "add.travel.calendar_sync": [.english: "Sync to Calendar", .simplifiedChinese: "同步到日历"],
+        "add.travel.calendar_synced": [.english: "Synced to Calendar", .simplifiedChinese: "已同步日历"],
+        "add.travel.calendar_failed": [.english: "Calendar sync failed", .simplifiedChinese: "日历同步失败"],
+
+        // Calendar Event Notes
+        "calendar.travel.notes": [.english: "Trip: %1$@ — Destination: %2$@ (%3$d days)", .simplifiedChinese: "旅行：%1$@ — 目的地：%2$@（%3$d 天）"],
+
+        // Remix
+        "remix.suffix": [.english: "Remix", .simplifiedChinese: "复刻"],
+
+        // Notifications
+        "notif.trip_upcoming.title": [.english: "Trip Approaching", .simplifiedChinese: "旅途将至"],
+        "notif.trip_upcoming.body": [.english: "%@ departs tomorrow! Don't forget to check your packing list ✈️", .simplifiedChinese: "%@ 明天就要出发了！别忘了检查行李清单 ✈️"],
+        "notif.trip_depart.title": [.english: "Departure Day!", .simplifiedChinese: "今天出发！"],
+        "notif.trip_depart.body": [.english: "%@ begins today. Have a wonderful trip! 🌟", .simplifiedChinese: "%@ 的旅程从今天开始，祝你旅途愉快 🌟"],
+        "notif.packing.title": [.english: "Packing Reminder", .simplifiedChinese: "收拾行李提醒"],
+        "notif.packing.body": [.english: "%@ departs in 3 days. Time to pack! 🧳", .simplifiedChinese: "%@ 还有3天出发，该准备行李了 🧳"],
+        "notif.review.title": [.english: "Journey Review", .simplifiedChinese: "旅程回顾"],
+        "notif.review.body": [.english: "%@ has ended. Time to capture those beautiful memories 📸", .simplifiedChinese: "%@ 已经结束了，来记录旅途中的美好回忆吧 📸"],
+        "notif.spot_arrival.title": [.english: "You've Arrived at %@", .simplifiedChinese: "你已到达 %@"],
+        "notif.spot_arrival.body": [.english: "Tap to check in and capture this moment!", .simplifiedChinese: "点击打卡，记录这一刻！"],
+        "notif.memory.title": [.english: "Memory: %@", .simplifiedChinese: "回忆：%@"],
+        "notif.memory.body": [.english: "A month ago you were exploring %@. Relive those moments!", .simplifiedChinese: "一个月前你正在探访 %@，重温那些美好时光吧！"],
+
+        // Check-in
+        "checkin.title": [.english: "You've Arrived!", .simplifiedChinese: "到达打卡!"],
+        "checkin.subtitle": [.english: "You're near %@", .simplifiedChinese: "你已到达 %@"],
+        "checkin.action": [.english: "Check In", .simplifiedChinese: "打卡"],
+        "checkin.skip": [.english: "Skip", .simplifiedChinese: "跳过"],
+        "checkin.photo": [.english: "Quick Photo", .simplifiedChinese: "快速拍照"],
+        "checkin.notes.placeholder": [.english: "Quick thoughts...", .simplifiedChinese: "记一笔感受..."],
+
+        // AI Review Enhanced
+        "ai.review.enhanced": [.english: "Enhanced Mode (with timeline & photos)", .simplifiedChinese: "增强模式（含时间线与照片）"],
+
+        // Smart Packing
+        "luggage.ai.suggestions": [.english: "Smart Suggestions", .simplifiedChinese: "智能推荐"],
+        "luggage.ai.weather_based": [.english: "Get suggestions based on destination weather", .simplifiedChinese: "基于目的地天气获取建议"],
+        "luggage.ai.add_all": [.english: "Add All", .simplifiedChinese: "全部添加"],
+
+        // Annual Report Banner
+        "annual.banner.title": [.english: "Your %@ in Review", .simplifiedChinese: "你的 %@ 旅行回顾"],
+        "annual.banner.action": [.english: "View Report", .simplifiedChinese: "查看报告"],
+        "annual.banner.stat": [.english: "%d trips completed", .simplifiedChinese: "已完成 %d 次旅程"],
+
+        // Companion Header
+        "detail.header.companions": [.english: "%d Travelers", .simplifiedChinese: "%d 人同行"],
+
+        // Footprint Heatmap Empty
+        "footprint.heatmap.empty": [.english: "No visited spots yet", .simplifiedChinese: "还没有访问记录"],
+
+        // Common
+        "common.confirm": [.english: "Confirm", .simplifiedChinese: "确认"],
+        "common.items": [.english: "items", .simplifiedChinese: "项"],
+
+        // Dashboard Greeting
+        "dashboard.greeting.morning": [.english: "Good Morning, Traveler", .simplifiedChinese: "早安，旅行家"],
+        "dashboard.greeting.afternoon": [.english: "Good Afternoon, Traveler", .simplifiedChinese: "午安，旅行家"],
+        "dashboard.greeting.evening": [.english: "Good Evening, Traveler", .simplifiedChinese: "晚上好，旅行家"],
+
+        // Dashboard Status Groups
+        "dashboard.section.upcoming": [.english: "UPCOMING", .simplifiedChinese: "即将出发"],
+        "dashboard.section.active": [.english: "ACTIVE", .simplifiedChinese: "旅途中"],
+        "dashboard.section.completed": [.english: "RECENTLY COMPLETED", .simplifiedChinese: "旅途回忆"],
+
+        // Travel Detail — Onboarding Guide
+        "detail.guide.title": [.english: "Quick Start Guide", .simplifiedChinese: "快速上手指南"],
+        "detail.guide.ai_itinerary.title": [.english: "AI Smart Planning", .simplifiedChinese: "AI 智能行程"],
+        "detail.guide.ai_itinerary.desc": [.english: "Let AI generate a complete itinerary based on your destination", .simplifiedChinese: "让 AI 根据目的地自动生成完整行程"],
+        "detail.guide.add_day.title": [.english: "Add Daily Plan", .simplifiedChinese: "添加每日计划"],
+        "detail.guide.add_day.desc": [.english: "Break down your trip day by day for clear planning", .simplifiedChinese: "按天拆分行程，清晰规划每一天"],
+        "detail.guide.luggage.title": [.english: "Packing Checklist", .simplifiedChinese: "行李清单"],
+        "detail.guide.luggage.desc": [.english: "AI generates a smart packing list based on weather and trip type", .simplifiedChinese: "AI 根据天气和旅行类型智能生成打包清单"],
+        "detail.guide.collab.title": [.english: "Invite Companions", .simplifiedChinese: "邀请同行伙伴"],
+        "detail.guide.collab.desc": [.english: "Invite friends to co-edit itineraries and sync footprints", .simplifiedChinese: "邀请朋友一起编辑行程，实时同步足迹"],
+
+        // Detail — Coming Soon
+        "detail.section.coming_soon": [.english: "COMING SOON", .simplifiedChinese: "即将推出"],
+
+        // AI Copilot
+        "copilot.title": [.english: "AI Packing Copilot", .simplifiedChinese: "AI 打包助手"],
+        "copilot.field.destination": [.english: "Destination", .simplifiedChinese: "目的地"],
+        "copilot.field.season": [.english: "Season", .simplifiedChinese: "季节"],
+        "copilot.field.style": [.english: "Trip Style", .simplifiedChinese: "旅行风格"],
+        "copilot.field.notes": [.english: "Special Needs", .simplifiedChinese: "特殊需求"],
+        "copilot.placeholder.destination": [.english: "Where are you going?", .simplifiedChinese: "你要去哪里？"],
+        "copilot.placeholder.notes": [.english: "Any special requirements...", .simplifiedChinese: "有什么特殊需求..."],
+        "copilot.action.generate": [.english: "Generate Smart List", .simplifiedChinese: "智能生成清单"],
+        "copilot.generating": [.english: "AI is thinking...", .simplifiedChinese: "AI 正在思考..."],
+        "copilot.results.count": [.english: "%d smart suggestions", .simplifiedChinese: "%d 条智能推荐"],
+        "copilot.action.select_all": [.english: "Select All", .simplifiedChinese: "全选"],
+        "copilot.action.add_count": [.english: "Add %d Items", .simplifiedChinese: "添加 %d 项"],
+        "copilot.banner.title": [.english: "AI Packing Copilot", .simplifiedChinese: "AI 打包助手"],
+        "copilot.banner.subtitle": [.english: "Tell me your destination, I'll plan the rest", .simplifiedChinese: "告诉我目的地，智能生成完整清单"],
+
+        // Travel DNA
+        "dna.title": [.english: "Your Travel DNA", .simplifiedChinese: "你的旅行 DNA"],
+        "dna.card.title": [.english: "TRAVEL DNA", .simplifiedChinese: "旅行 DNA"],
+        "dna.section.preferences": [.english: "TRAVEL PREFERENCES", .simplifiedChinese: "旅行偏好"],
+        "dna.section.personality": [.english: "TRAVEL PERSONALITY", .simplifiedChinese: "旅行性格"],
+        "dna.section.cities": [.english: "FAVORITE CITIES", .simplifiedChinese: "常去城市"],
+        "dna.stat.trips": [.english: "Trips", .simplifiedChinese: "旅程"],
+        "dna.stat.spots": [.english: "Spots", .simplifiedChinese: "打卡"],
+        "dna.stat.days": [.english: "Days", .simplifiedChinese: "天数"],
+        "dna.stat.photos": [.english: "Photos", .simplifiedChinese: "照片"],
+        "dna.action.share": [.english: "Share DNA Card", .simplifiedChinese: "分享 DNA 卡片"],
+        "dna.action.close": [.english: "Close", .simplifiedChinese: "关闭"],
+
+        // Map Route Optimization
+        "map.alert.optimize_route.title": [.english: "Optimize Route?", .simplifiedChinese: "优化路线？"],
+        "map.alert.optimize_route.message": [.english: "Reorder %d spots for the shortest path", .simplifiedChinese: "重新排列 %d 个景点以获得最短路线"],
+        "map.action.optimize": [.english: "Optimize", .simplifiedChinese: "优化"],
+        "map.toast.route_optimized": [.english: "Route optimized!", .simplifiedChinese: "路线已优化！"],
+
+        // Memory Capsule
+        "memory.banner.title": [.english: "Time Capsule", .simplifiedChinese: "时光胶囊"],
+        "memory.banner.subtitle": [.english: "%@ · %d days ago", .simplifiedChinese: "%@ · %d 天前"],
+        "memory.banner.action": [.english: "Open Capsule", .simplifiedChinese: "打开胶囊"],
+        "memory.title": [.english: "Time Capsule", .simplifiedChinese: "时光胶囊"],
+        "memory.subtitle": [.english: "%d days of wonderful moments", .simplifiedChinese: "%d 天的美好时光"],
+        "memory.ai_reflection": [.english: "AI Reflection", .simplifiedChinese: "AI 感悟"],
+        "memory.action.share": [.english: "Share Memory", .simplifiedChinese: "分享回忆"],
+        "memory.action.close": [.english: "Close", .simplifiedChinese: "关闭"],
+
+        // Memory Notification Milestone
+        "notif.memory.milestone.body": [.english: "It's been %2$@ since your trip to %1$@. Relive those moments!", .simplifiedChinese: "你的 %@ 之旅已过去 %@，来看看当时的美好瞬间"],
+
+        // Route Replay
+        "route.replay.title": [.english: "Route Replay", .simplifiedChinese: "路线回放"],
+
+        // Clipboard Import
+        "import.clipboard.title": [.english: "Import from Clipboard", .simplifiedChinese: "从剪贴板导入"],
+        "import.empty.title": [.english: "No Travel Content Found", .simplifiedChinese: "未检测到旅行内容"],
+        "import.empty.subtitle": [.english: "Copy a travel post from Xiaohongshu or other apps, then open this page", .simplifiedChinese: "先从小红书等平台复制一篇旅行攻略，再打开此页面"],
+        "import.source.preview": [.english: "SOURCE PREVIEW", .simplifiedChinese: "来源预览"],
+        "import.spots.found": [.english: "%d Spots Detected", .simplifiedChinese: "识别到 %d 个地点"],
+        "import.action.add": [.english: "Import", .simplifiedChinese: "导入"],
+
+        // Route Tracking
+        "tracking.title": [.english: "Route Tracking", .simplifiedChinese: "路线追踪"],
+        "tracking.status.active": [.english: "Tracking Active", .simplifiedChinese: "正在记录路线"],
+        "tracking.status.inactive": [.english: "Not Tracking", .simplifiedChinese: "未开始记录"],
+        "tracking.action.start": [.english: "Start Tracking", .simplifiedChinese: "开始记录"],
+        "tracking.action.stop": [.english: "Stop & Save", .simplifiedChinese: "停止并保存"],
+        "tracking.action.replay": [.english: "Replay Route", .simplifiedChinese: "回放路线"],
+        "tracking.action.import": [.english: "Import from Clipboard", .simplifiedChinese: "从剪贴板导入攻略"]
     ]
 }
 

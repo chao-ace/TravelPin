@@ -7,12 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		E5536E732F87E4E000202B9A /* TravelPin.storekit in Resources */ = {isa = PBXBuildFile; fileRef = E5536E722F87E4E000202B9A /* TravelPin.storekit */; };
 		E55CB0082F83D8AA00A8131E /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E55CB0072F83D8AA00A8131E /* WidgetKit.framework */; };
 		E55CB00A2F83D8AA00A8131E /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E55CB0092F83D8AA00A8131E /* SwiftUI.framework */; };
 		E58ECB3A2F82988700D48F1A /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = E5A000022F83000000D48F1A /* Supabase */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		E5536E722F87E4E000202B9A /* TravelPin.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; name = TravelPin.storekit; path = TravelPin/Configuration/TravelPin.storekit; sourceTree = "<group>"; };
 		E55CB0052F83D8A900A8131E /* TravelPinWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TravelPinWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		E55CB0072F83D8AA00A8131E /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		E55CB0092F83D8AA00A8131E /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
@@ -89,6 +91,7 @@
 		E58EC97B2F828A5E00D48F1A = {
 			isa = PBXGroup;
 			children = (
+				E5536E722F87E4E000202B9A /* TravelPin.storekit */,
 				E55CB01E2F83DA0F00A8131E /* TravelPinWidgetExtension.entitlements */,
 				E58EC9862F828A5E00D48F1A /* TravelPin */,
 				E55CB00B2F83D8AA00A8131E /* TravelPinWidget */,
@@ -207,6 +210,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E5536E732F87E4E000202B9A /* TravelPin.storekit in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -34,8 +34,8 @@ final class NotificationService {
         guard let reminderDate, reminderDate > Date() else { return }
 
         let content = UNMutableNotificationContent()
-        content.title = "旅途将至"
-        content.body = "\(travel.name) 明天就要出发了！别忘了检查行李清单 ✈️"
+        content.title = "notif.trip_upcoming.title".localized
+        content.body = String(format: "notif.trip_upcoming.body".localized, travel.name)
         content.sound = .default
         content.badge = NSNumber(value: 1)
 
@@ -52,8 +52,8 @@ final class NotificationService {
 
         // Schedule departure day reminder
         let departContent = UNMutableNotificationContent()
-        departContent.title = "今天出发！"
-        departContent.body = "\(travel.name) 的旅程从今天开始，祝你旅途愉快 🌟"
+        departContent.title = "notif.trip_depart.title".localized
+        departContent.body = String(format: "notif.trip_depart.body".localized, travel.name)
         departContent.sound = .default
 
         let departComponents = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: travel.startDate)
@@ -79,8 +79,8 @@ final class NotificationService {
         guard let reminderDate, reminderDate > Date() else { return }
 
         let content = UNMutableNotificationContent()
-        content.title = "收拾行李提醒"
-        content.body = "\(travel.name) 还有3天出发，该准备行李了 🧳"
+        content.title = "notif.packing.title".localized
+        content.body = String(format: "notif.packing.body".localized, travel.name)
         content.sound = .default
 
         let components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: reminderDate)
@@ -106,8 +106,8 @@ final class NotificationService {
         guard let reminderDate, reminderDate > Date() else { return }
 
         let content = UNMutableNotificationContent()
-        content.title = "旅程回顾"
-        content.body = "\(travel.name) 已经结束了，来记录旅途中的美好回忆吧 📸"
+        content.title = "notif.review.title".localized
+        content.body = String(format: "notif.review.body".localized, travel.name)
         content.sound = .default
 
         let components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: reminderDate)
@@ -115,6 +115,79 @@ final class NotificationService {
 
         let request = UNNotificationRequest(
             identifier: "review_\(travel.id.uuidString)",
+            content: content,
+            trigger: trigger
+        )
+
+        try? await center.add(request)
+    }
+
+    // MARK: - Spot Arrival Notification
+
+    /// Schedule a notification when the user arrives near a spot.
+    func scheduleSpotArrivalNotification(for spot: Spot, in travel: Travel) async {
+        let authorized = await requestPermission()
+        guard authorized else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = String(format: "notif.spot_arrival.title".localized, spot.name)
+        content.body = "notif.spot_arrival.body".localized
+        content.sound = .default
+        content.userInfo = ["spotId": spot.id.uuidString, "travelId": travel.id.uuidString]
+
+        let request = UNNotificationRequest(
+            identifier: "spot_arrival_\(spot.id.uuidString)",
+            content: content,
+            trigger: nil // Delivered immediately by LocationService region monitoring
+        )
+
+        try? await center.add(request)
+    }
+
+    // MARK: - Memory Notification
+
+    /// Schedule a memory notification 30 days after trip ends.
+    func scheduleMemoryNotification(for travel: Travel) async {
+        await scheduleMemoryNotification(for: travel, daysAfter: 30)
+    }
+
+    /// Schedule a memory notification at a specific number of days after trip ends.
+    func scheduleMemoryNotification(for travel: Travel, daysAfter: Int) async {
+        let authorized = await requestPermission()
+        guard authorized else { return }
+
+        let identifier = "memory_\(daysAfter)_\(travel.id.uuidString)"
+
+        // Cancel existing for this milestone
+        center.removePendingNotificationRequests(withIdentifiers: [identifier])
+
+        let reminderDate = Calendar.current.date(byAdding: .day, value: daysAfter, to: travel.endDate)
+        guard let reminderDate, reminderDate > Date() else { return }
+
+        let daysLabel: String
+        switch daysAfter {
+        case 30: daysLabel = "一个月"
+        case 90: daysLabel = "三个月"
+        case 365: daysLabel = "一年"
+        default: daysLabel = "\(daysAfter) 天"
+        }
+
+        let content = UNMutableNotificationContent()
+        content.title = String(format: "notif.memory.title".localized, travel.name)
+        content.body = String(format: "notif.memory.milestone.body".localized, travel.name, daysLabel)
+        content.sound = .default
+        content.badge = NSNumber(value: 1)
+        content.userInfo = [
+            "travelId": travel.id.uuidString,
+            "memoryDaysAgo": daysAfter,
+            "type": "memory_capsule"
+        ]
+
+        let components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: reminderDate)
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+
+        let request = UNNotificationRequest(
+            identifier: identifier,
             content: content,
             trigger: trigger
         )
@@ -143,5 +216,10 @@ final class NotificationService {
 
     func cancelAllReminders() {
         center.removeAllPendingNotificationRequests()
+    }
+
+    func cancelMemoryNotification(for id: UUID) {
+        let identifiers = [30, 90, 365].map { "memory_\($0)_\(id.uuidString)" }
+        center.removePendingNotificationRequests(withIdentifiers: identifiers)
     }
 }

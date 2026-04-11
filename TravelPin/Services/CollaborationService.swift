@@ -28,7 +28,6 @@ class CollaborationService: ObservableObject {
     // MARK: - Create Invite
 
     func createInvite(tripId: UUID, tripName: String, role: CollabRole = .editor) async throws -> CollaborationInvite {
-        let userId = try await SupabaseService.shared.getCurrentUserId()
         let code = generateInviteCode()
 
         let invite = CollaborationInvite(
@@ -39,18 +38,26 @@ class CollaborationService: ObservableObject {
             role: role
         )
 
-        let dto: [String: String] = [
-            "id": invite.id.uuidString,
-            "trip_id": tripId.uuidString,
-            "trip_name": tripName,
-            "inviter_id": userId.uuidString,
-            "inviter_name": invite.inviterName,
-            "invite_code": code,
-            "role": role.rawValue,
-            "status": "Pending"
-        ]
+        // Try to sync to Supabase, but don't block on failure
+        Task {
+            do {
+                let userId = try await SupabaseService.shared.getCurrentUserId()
+                let dto: [String: String] = [
+                    "id": invite.id.uuidString,
+                    "trip_id": tripId.uuidString,
+                    "trip_name": tripName,
+                    "inviter_id": userId.uuidString,
+                    "inviter_name": invite.inviterName,
+                    "invite_code": code,
+                    "role": role.rawValue,
+                    "status": "Pending"
+                ]
+                try await client.database.from("collaboration_invites").insert(dto).execute()
+            } catch {
+                print("[CollaborationService] Server sync failed, invite kept locally: \(error)")
+            }
+        }
 
-        try await client.database.from("collaboration_invites").insert(dto).execute()
         return invite
     }
 
@@ -59,7 +66,6 @@ class CollaborationService: ObservableObject {
     func acceptInvite(code: String, modelContext: ModelContext) async throws -> Travel? {
         let userId = try await SupabaseService.shared.getCurrentUserId()
 
-        // 1. Find the invite (typed execute().value)
         let invites: [CollaborationInviteRow] = try await client.database
             .from("collaboration_invites")
             .select()
@@ -72,7 +78,6 @@ class CollaborationService: ObservableObject {
             throw CollaborationError.invalidCode
         }
 
-        // 2. Update invite status
         let updateData: [String: String] = [
             "status": "Accepted",
             "recipient_id": userId.uuidString
@@ -83,7 +88,6 @@ class CollaborationService: ObservableObject {
             .eq("id", value: inviteDTO.id.uuidString)
             .execute()
 
-        // 3. Fetch the original trip
         let trips: [TravelDTO] = try await client.database
             .from("travels")
             .select()
@@ -95,7 +99,6 @@ class CollaborationService: ObservableObject {
             throw CollaborationError.tripNotFound
         }
 
-        // 4. Create local Travel from DTO
         let travel = Travel(
             name: travelDTO.name,
             startDate: travelDTO.start_date,

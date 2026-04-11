@@ -5,6 +5,7 @@ import SwiftData
 
 struct CollaborationInviteView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
     @StateObject private var collab = CollaborationService.shared
     @State private var inviteCode = ""
     @State private var isGenerating = false
@@ -33,6 +34,8 @@ struct CollaborationInviteView: View {
                             pendingInvitesSection
                         }
 
+                        membersSection
+
                         Spacer(minLength: 80)
                     }
                     .padding(24)
@@ -40,6 +43,11 @@ struct CollaborationInviteView: View {
             }
             .navigationTitle("同行协作")
             .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("完成") { dismiss() }
+                }
+            }
             .sheet(isPresented: $showTripPicker) {
                 tripPickerSheet
             }
@@ -48,7 +56,10 @@ struct CollaborationInviteView: View {
             } message: {
                 Text("旅程已添加到你的计划中")
             }
-            .alert("出错了", isPresented: .constant(errorMessage != nil), actions: {
+            .alert("出错了", isPresented: Binding(
+                get: { errorMessage != nil },
+                set: { if !$0 { errorMessage = nil } }
+            ), actions: {
                 Button("好的") { errorMessage = nil }
             }, message: {
                 Text(errorMessage ?? "")
@@ -296,6 +307,69 @@ struct CollaborationInviteView: View {
         )
     }
 
+    // MARK: - Members Section
+
+    private var membersSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("我的旅伴")
+                .font(TPDesign.editorialSerif(20))
+                .foregroundStyle(TPDesign.obsidian)
+
+            let allMembers = collectMembers()
+            if allMembers.isEmpty {
+                HStack(spacing: 12) {
+                    Image(systemName: "person.2.circle")
+                        .font(.system(size: 20))
+                        .foregroundStyle(TPDesign.textTertiary)
+                    Text("还没有旅伴，邀请朋友一起规划吧")
+                        .font(TPDesign.bodyFont(14))
+                        .foregroundStyle(TPDesign.textTertiary)
+                }
+                .padding(.vertical, 12)
+            } else {
+                ForEach(allMembers, id: \.name) { member in
+                    HStack(spacing: 12) {
+                        ZStack {
+                            Circle()
+                                .fill(member.isOwner ? TPDesign.warmGold.opacity(0.1) : Color.tpAccent.opacity(0.1))
+                                .frame(width: 36, height: 36)
+                            Image(systemName: member.isOwner ? "crown.fill" : "person.fill")
+                                .font(.system(size: 14))
+                                .foregroundStyle(member.isOwner ? TPDesign.warmGold : Color.tpAccent)
+                        }
+
+                        Text(member.name)
+                            .font(TPDesign.bodyFont(14, weight: .medium))
+                            .foregroundStyle(TPDesign.textPrimary)
+
+                        Spacer()
+
+                        Text(member.role)
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(TPDesign.textTertiary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(Capsule().fill(TPDesign.surface1))
+                    }
+                    .padding(.vertical, 6)
+                }
+            }
+        }
+    }
+
+    private func collectMembers() -> [(name: String, isOwner: Bool, role: String)] {
+        var members: [(name: String, isOwner: Bool, role: String)] = []
+        for travel in travels {
+            members.append((name: "我", isOwner: true, role: "Owner"))
+            for companion in travel.companionNames {
+                if !members.contains(where: { $0.name == companion }) {
+                    members.append((name: companion, isOwner: false, role: "Editor"))
+                }
+            }
+        }
+        return members
+    }
+
     // MARK: - Trip Picker Sheet
 
     private var tripPickerSheet: some View {
@@ -380,7 +454,7 @@ struct CollaborationInviteView: View {
                 generatedCode = invite.inviteCode
                 generatedTripName = travel.name
             } catch {
-                errorMessage = error.localizedDescription
+                errorMessage = "邀请码生成失败，请稍后重试"
             }
         }
     }

@@ -23,7 +23,6 @@ struct InspirationPlazaView: View {
                             categoryPills
                             featuredEditorial
                             communityTripsGrid
-                            collaborationSection
                             Spacer(minLength: 120)
                         }
                     }
@@ -34,15 +33,6 @@ struct InspirationPlazaView: View {
             }
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink(destination: CollaborationInviteView()) {
-                        Image(systemName: "person.2.circle")
-                            .font(.title3)
-                            .foregroundStyle(TPDesign.obsidian)
-                    }
-                }
-            }
             .sheet(item: $selectedTrip) { trip in
                 TripResonanceDetailView(trip: trip) {
                     remixTrip(trip)
@@ -366,116 +356,6 @@ struct InspirationPlazaView: View {
         case .business: return LinearGradient(colors: [TPDesign.obsidian, TPDesign.obsidian.opacity(0.7)], startPoint: .topLeading, endPoint: .bottomTrailing)
         case .other:    return LinearGradient(colors: [TPDesign.marineDeep.opacity(0.5), TPDesign.deepNavy], startPoint: .topLeading, endPoint: .bottomTrailing)
         }
-    }
-
-    // MARK: - Collaboration Section
-
-    private var collaborationSection: some View {
-        VStack(spacing: 16) {
-            NavigationLink(destination: CollaborationInviteView()) {
-                collabCard
-            }
-            .buttonStyle(PlainButtonStyle())
-
-            developingCard(
-                icon: "arrow.triangle.branch",
-                title: "inspiration.reroute.title".localized,
-                desc: "inspiration.reroute.desc".localized,
-                color: TPDesign.celestialBlue
-            )
-        }
-        .padding(.horizontal, 24)
-        .padding(.top, 32)
-    }
-
-    private var collabCard: some View {
-        HStack(spacing: 16) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(TPDesign.warmGold.opacity(0.08))
-                    .frame(width: 52, height: 52)
-                Image(systemName: "person.2.fill")
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundStyle(TPDesign.warmGold)
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 8) {
-                    Text(locKey: "inspiration.collab.title")
-                        .font(TPDesign.bodyFont(16, weight: .bold))
-                        .foregroundStyle(TPDesign.obsidian)
-
-                    Text(locKey: "inspiration.badge.new")
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(Capsule().fill(Color.tpAccent))
-                }
-
-                Text(locKey: "inspiration.collab.desc")
-                    .font(TPDesign.bodyFont(13))
-                    .foregroundStyle(TPDesign.textSecondary)
-            }
-
-            Spacer()
-
-            Image(systemName: "chevron.right")
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(TPDesign.textTertiary)
-        }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(TPDesign.secondaryBackground.opacity(0.6))
-                .overlay(RoundedRectangle(cornerRadius: 20).stroke(TPDesign.divider, lineWidth: 0.5))
-        )
-        .shadowSmall()
-    }
-
-    private func developingCard(icon: String, title: String, desc: String, color: Color) -> some View {
-        HStack(spacing: 16) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(color.opacity(0.08))
-                    .frame(width: 52, height: 52)
-                Image(systemName: icon)
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundStyle(color)
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 8) {
-                    Text(title)
-                        .font(TPDesign.bodyFont(16, weight: .bold))
-                        .foregroundStyle(TPDesign.obsidian)
-
-                    Text(locKey: "inspiration.badge.developing")
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(Capsule().fill(TPDesign.warmAmber))
-                }
-
-                Text(desc)
-                    .font(TPDesign.bodyFont(13))
-                    .foregroundStyle(TPDesign.textSecondary)
-            }
-
-            Spacer()
-
-            Image(systemName: "chevron.right")
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(TPDesign.textTertiary)
-        }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(TPDesign.secondaryBackground.opacity(0.6))
-                .overlay(RoundedRectangle(cornerRadius: 20).stroke(TPDesign.divider, lineWidth: 0.5))
-        )
-        .shadowSmall()
     }
 
     // MARK: - Actions

@@ -10,12 +10,13 @@ struct LuggageView: View {
 
     @State private var newItemName = ""
     @State private var selectedCategory = LuggageCategory.clothes
-    
     // Management Sheets
     @State private var showingTemplateLibrary = false
     @State private var showingTripHistory = false
     @State private var showingSaveTemplateAlert = false
+    @State private var showingAICopilot = false
     @State private var newTemplateName = ""
+    @ObservedObject private var intelligence = IntelligenceService.shared
 
     private var totalItems: Int {
         travel.luggageItems.count
@@ -34,6 +35,12 @@ struct LuggageView: View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: TPDesign.spacing24) {
                 progressHeader
+
+                // Destination Weather
+                destinationWeatherCard
+
+                // AI Packing Assistant (unified)
+                aiPackingAssistant
                 itemInputSection
                 categoryGroups
                 Spacer(minLength: TPDesign.spacing32)
@@ -71,6 +78,10 @@ struct LuggageView: View {
         .sheet(isPresented: $showingTripHistory) {
             tripHistorySheet
         }
+        .sheet(isPresented: $showingAICopilot) {
+            AICopilotSheet(travel: travel)
+                .environment(\.modelContext, modelContext)
+        }
         .alert("luggage.action.save_as_template".localized, isPresented: $showingSaveTemplateAlert) {
             TextField("luggage.placeholder.template_name".localized, text: $newTemplateName)
             Button("common.cancel".localized, role: .cancel) { newTemplateName = "" }
@@ -82,6 +93,55 @@ struct LuggageView: View {
     }
 
     // MARK: - Subviews
+
+    // MARK: - Unified AI Packing Assistant
+
+    private var aiPackingAssistant: some View {
+        VStack(spacing: 16) {
+            // Header button — opens copilot chat
+            Button {
+                showingAICopilot = true
+            } label: {
+                HStack(spacing: 12) {
+                    ZStack {
+                        Circle()
+                            .fill(TPDesign.accentGradient)
+                            .frame(width: 40, height: 40)
+                        Image(systemName: "wand.and.stars")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(.white)
+                    }
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("AI 打包助手")
+                            .font(TPDesign.bodyFont(15, weight: .bold))
+                            .foregroundStyle(TPDesign.textPrimary)
+                        Text("智能推荐 · 天气适配 · 一键添加")
+                            .font(TPDesign.captionFont())
+                            .foregroundStyle(TPDesign.textSecondary)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(TPDesign.textTertiary)
+                }
+                .padding(16)
+                .background(
+                    RoundedRectangle(cornerRadius: TPDesign.radiusLarge)
+                        .fill(TPDesign.accentGradient.opacity(0.06))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: TPDesign.radiusLarge)
+                                .stroke(TPDesign.celestialBlue.opacity(0.15), lineWidth: 1)
+                        )
+                )
+                .shadowSmall()
+            }
+            .buttonStyle(.plain)
+        }
+        .cinematicFadeIn(delay: 0)
+    }
 
     private var progressHeader: some View {
         VStack(spacing: TPDesign.spacing12) {
@@ -361,6 +421,105 @@ struct LuggageView: View {
         .presentationDetents([.medium, .large])
     }
 
+    // MARK: - Weather Card
+
+    private var destinationWeatherCard: some View {
+        Group {
+            if let weather = intelligence.currentWeather {
+                VStack(spacing: 12) {
+                    HStack {
+                        Text("luggage.weather.title".localized)
+                            .font(TPDesign.overline())
+                            .foregroundStyle(TPDesign.textTertiary)
+                            .tracking(1)
+                        Spacer()
+                    }
+
+                    HStack(spacing: 20) {
+                        // Current temp
+                        VStack(spacing: 4) {
+                            Text("\(Int(weather.temperature))°")
+                                .font(.system(size: 36, weight: .bold, design: .rounded))
+                                .foregroundStyle(TPDesign.obsidian)
+                            Text(weather.condition)
+                                .font(TPDesign.captionFont())
+                                .foregroundStyle(TPDesign.textSecondary)
+                        }
+
+                        Divider().frame(height: 40)
+
+                        // Hourly forecast (next 6 hours)
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 16) {
+                                ForEach(Array(weather.hourlyForecast.prefix(6)), id: \.time) { hour in
+                                    VStack(spacing: 4) {
+                                        Text(hour.time.formatted(.dateTime.hour()))
+                                            .font(.system(size: 10, weight: .medium))
+                                            .foregroundStyle(TPDesign.textTertiary)
+                                        Text(weatherIcon(for: hour.condition))
+                                            .font(.system(size: 16))
+                                        Text("\(Int(hour.temperature))°")
+                                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                                            .foregroundStyle(TPDesign.obsidian)
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer()
+                    }
+
+                    // Weather-based packing tips
+                    if weather.isRainy {
+                        Label("建议携带雨伞和防水装备", systemImage: "umbrella.fill")
+                            .font(TPDesign.captionFont())
+                            .foregroundStyle(TPDesign.celestialBlue)
+                    }
+                }
+                .padding(16)
+                .background(
+                    RoundedRectangle(cornerRadius: TPDesign.radiusLarge)
+                        .fill(TPDesign.celestialBlue.opacity(0.06))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: TPDesign.radiusLarge)
+                                .stroke(TPDesign.celestialBlue.opacity(0.15), lineWidth: 1)
+                        )
+                )
+                .shadowSmall()
+            } else if travel.status == .traveling || travel.status == .planning {
+                VStack(spacing: 8) {
+                    HStack {
+                        Text("luggage.weather.title".localized)
+                            .font(TPDesign.overline())
+                            .foregroundStyle(TPDesign.textTertiary)
+                            .tracking(1)
+                        Spacer()
+                    }
+                    Text("luggage.weather.unavailable".localized)
+                        .font(TPDesign.captionFont())
+                        .foregroundStyle(TPDesign.textTertiary)
+                }
+                .padding(16)
+                .background(
+                    RoundedRectangle(cornerRadius: TPDesign.radiusLarge)
+                        .fill(TPDesign.surface1)
+                )
+            }
+        }
+        .cinematicFadeIn(delay: 0)
+    }
+
+    private func weatherIcon(for condition: String) -> String {
+        let lower = condition.lowercased()
+        if lower.contains("rain") || lower.contains("雨") { return "cloud.rain.fill" }
+        if lower.contains("snow") || lower.contains("雪") { return "snowflake" }
+        if lower.contains("cloud") || lower.contains("阴") || lower.contains("多云") { return "cloud.fill" }
+        if lower.contains("clear") || lower.contains("晴") { return "sun.max.fill" }
+        if lower.contains("fog") || lower.contains("雾") { return "cloud.fog.fill" }
+        if lower.contains("wind") || lower.contains("风") { return "wind" }
+        return "cloud.sun.fill"
+    }
+
     // MARK: - Logic
 
     private func addItem() {
@@ -373,7 +532,7 @@ struct LuggageView: View {
             TPHaptic.selection()
         }
     }
-    
+
     private func saveAsTemplate() {
         let template = PackingTemplate(name: newTemplateName)
         for item in travel.luggageItems {

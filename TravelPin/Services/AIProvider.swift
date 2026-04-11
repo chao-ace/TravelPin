@@ -32,16 +32,12 @@ extension AIProvider {
 // MARK: - Provider Registry
 
 enum AIProviderType: String, CaseIterable, Codable {
-    case foundationModels = "foundation_models"
-    case openAI = "openai"
-    case anthropic = "anthropic"
+    case travelPinAI = "travelpin_ai"
     case localTemplate = "local_template"
 
     var displayName: String {
         switch self {
-        case .foundationModels: return "Apple 本地模型"
-        case .openAI: return "OpenAI"
-        case .anthropic: return "Anthropic"
+        case .travelPinAI: return "TravelPin AI"
         case .localTemplate: return "系统默认智能模板"
         }
     }
@@ -55,31 +51,8 @@ final class AIProviderRegistry: ObservableObject {
         didSet { UserDefaults.standard.set(activeProviderType.rawValue, forKey: "ai_provider_type") }
     }
 
-    @Published var openAIKey: String {
-        didSet { UserDefaults.standard.set(openAIKey, forKey: "openai_api_key") }
-    }
-
-    @Published var anthropicKey: String {
-        didSet { UserDefaults.standard.set(anthropicKey, forKey: "anthropic_api_key") }
-    }
-
     private init() {
-        let savedType = UserDefaults.standard.string(forKey: "ai_provider_type") ?? AIProviderType.openAI.rawValue
-        self.activeProviderType = AIProviderType(rawValue: savedType) ?? .openAI
-        self.openAIKey = UserDefaults.standard.string(forKey: "openai_api_key") ?? ""
-        self.anthropicKey = UserDefaults.standard.string(forKey: "anthropic_api_key") ?? ""
-    }
-
-    var activeProvider: AIProvider {
-        switch activeProviderType {
-        case .foundationModels:
-            return FoundationModelsProvider()
-        case .openAI:
-            return OpenAIProvider(apiKey: openAIKey)
-        case .anthropic:
-            return AnthropicProvider(apiKey: anthropicKey)
-        case .localTemplate:
-            return LocalTemplateProvider()
-        }
+        let savedType = UserDefaults.standard.string(forKey: "ai_provider_type") ?? AIProviderType.travelPinAI.rawValue
+        self.activeProviderType = AIProviderType(rawValue: savedType) ?? .travelPinAI
     }
 }

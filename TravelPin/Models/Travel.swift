@@ -32,6 +32,14 @@ final class Travel {
     /// The return date. Defaults to 3 days after `startDate`.
     var endDate: Date = Date().addingTimeInterval(86400 * 3)
 
+    // MARK: - Finance & Budget (Logical Core)
+    
+    /// User-defined budget for the entire trip.
+    var budget: Double?
+    
+    /// ISO 4217 Currency code (e.g. "CNY", "USD").
+    var currency: String = "CNY"
+
     // MARK: Status & Type (Raw Storage)
 
     /// Backing store for `TravelStatus`. Stored as String for SwiftData compatibility.
@@ -56,20 +64,23 @@ final class Travel {
     /// The Supabase user ID of the trip owner. Nil for locally-created trips not yet synced.
     var ownerId: String?
 
+    /// EventKit event identifier for calendar sync. Nil if not synced to calendar.
+    var calendarEventId: String?
+
     // MARK: Relationships (Cascade Ownership)
 
     /// Day-by-day route segments. Each itinerary optionally groups spots via `Spot.itinerary`.
     @Relationship(deleteRule: .cascade)
-    var itineraries: [Itinerary]
+    var itineraries: [Itinerary] = []
 
     /// All geo-tagged places visited or planned. Spots link back to `Travel` (required)
     /// and optionally to an `Itinerary` for day grouping.
     @Relationship(deleteRule: .cascade)
-    var spots: [Spot]
+    var spots: [Spot] = []
 
     /// Packing checklist items for this trip.
     @Relationship(deleteRule: .cascade)
-    var luggageItems: [LuggageItem]
+    var luggageItems: [LuggageItem] = []
 
     // MARK: Initializer
 
@@ -86,6 +97,8 @@ final class Travel {
         self.endDate = endDate
         self.statusRaw = status
         self.typeRaw = type
+        self.budget = nil
+        self.currency = "CNY"
         self.itineraries = []
         self.spots = []
         self.luggageItems = []
@@ -149,6 +162,11 @@ extension Travel {
     /// A formatted date-range string for display, e.g. "Apr 7 - Apr 10".
     var dateRangeString: String {
         "\(startDate.formatted(.dateTime.day().month())) - \(endDate.formatted(.dateTime.day().month().year()))"
+    }
+    
+    /// Total actual spending across all spots.
+    var totalSpent: Double {
+        spots.reduce(0.0) { $0 + ($1.cost ?? 0.0) }
     }
 }
 

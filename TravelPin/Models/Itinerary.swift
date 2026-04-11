@@ -43,7 +43,7 @@ final class Itinerary {
     
     /// Spots assignment for this day.
     @Relationship(deleteRule: .nullify)
-    var spots: [Spot]
+    var spots: [Spot] = []
 
     // MARK: - Init
 

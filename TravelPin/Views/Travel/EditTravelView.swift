@@ -5,9 +5,12 @@ import PhotosUI
 struct EditTravelView: View {
     @Bindable var travel: Travel
     @Environment(\.dismiss) private var dismiss
-    
+    @Environment(\.modelContext) private var modelContext
+
     @State private var newCompanion = ""
     @State private var selectedItems: [PhotosPickerItem] = []
+    @State private var budgetText: String = ""
+    @State private var selectedCurrency: String = "CNY"
     
     var body: some View {
         NavigationStack {
@@ -41,7 +44,42 @@ struct EditTravelView: View {
                     }
                     .pickerStyle(.segmented)
                 }
-                
+
+                Section(header: Text(locKey: "add.travel.budget")) {
+                    HStack {
+                        TextField("add.travel.budget.placeholder".localized, text: $budgetText)
+                            .font(TPDesign.bodyFont())
+                            .keyboardType(.decimalPad)
+
+                        Picker("", selection: $selectedCurrency) {
+                            ForEach(["CNY", "USD", "EUR", "JPY", "GBP"], id: \.self) { code in
+                                Text(code).tag(code)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .labelsHidden()
+                    }
+                }
+
+                Section(header: Text(locKey: "add.travel.calendar")) {
+                    if let eventId = travel.calendarEventId, !eventId.isEmpty {
+                        Label("add.travel.calendar_synced".localized, systemImage: "calendar.badge.checkmark")
+                            .foregroundStyle(Color.tpAccent)
+                    } else {
+                        Button {
+                            Task {
+                                if let eventId = await CalendarSyncService.shared.createEvent(for: travel) {
+                                    travel.calendarEventId = eventId
+                                    try? modelContext.save()
+                                }
+                            }
+                        } label: {
+                            Label("add.travel.calendar_sync".localized, systemImage: "calendar.badge.plus")
+                                .foregroundStyle(Color.tpAccent)
+                        }
+                    }
+                }
+
                 Section(header: Text(locKey: "edit.travel.companions")) {
                     ForEach(travel.companionNames, id: \.self) { name in
                         Text(name)
@@ -90,6 +128,12 @@ struct EditTravelView: View {
             }
             .navigationTitle("edit.travel.title".localized)
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                if let budget = travel.budget {
+                    budgetText = String(format: "%.0f", budget)
+                }
+                selectedCurrency = travel.currency
+            }
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("common.done".localized) {

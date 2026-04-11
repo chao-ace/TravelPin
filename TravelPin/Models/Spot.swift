@@ -64,7 +64,7 @@ final class Spot {
     var photoPaths: [String] = []
     /// Local photo assets stored via SwiftData relationship.
     @Relationship(deleteRule: .cascade)
-    var photos: [TravelPhoto]
+    var photos: [TravelPhoto] = []
     
     /// Rendered static map snapshot image data.
     var mapSnapshot: Data?

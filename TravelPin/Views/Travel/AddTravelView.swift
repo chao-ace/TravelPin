@@ -10,6 +10,9 @@ struct AddTravelView: View {
     @State private var endDate = Date().addingTimeInterval(86400 * 3)
     @State private var selectedStatus = TravelStatus.wishing
     @State private var selectedType = TravelType.tourism
+    @State private var budgetText = ""
+    @State private var selectedCurrency = "CNY"
+    @State private var syncToCalendar = false
 
     var body: some View {
         NavigationStack {
@@ -74,6 +77,49 @@ struct AddTravelView: View {
                     }
                     .cinematicFadeIn(delay: 0.1)
 
+                    // MARK: - Budget Section
+                    CinematicFormSection(titleLocKey: "add.travel.budget") {
+                        VStack(spacing: 0) {
+                            CinematicFormRow(icon: "yensign.circle", iconColor: TPDesign.warmGold) {
+                                HStack(spacing: 8) {
+                                    TextField("add.travel.budget.placeholder".localized, text: $budgetText)
+                                        .font(TPDesign.bodyFont())
+                                        .keyboardType(.decimalPad)
+
+                                    // Currency Picker
+                                    ScrollView(.horizontal, showsIndicators: false) {
+                                        HStack(spacing: 6) {
+                                            ForEach(["CNY", "USD", "EUR", "JPY", "GBP"], id: \.self) { code in
+                                                CinematicChipButton(
+                                                    title: code,
+                                                    icon: nil,
+                                                    isSelected: selectedCurrency == code
+                                                ) {
+                                                    withAnimation(TPDesign.springDefault) {
+                                                        selectedCurrency = code
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .cinematicFadeIn(delay: 0.15)
+
+                    // MARK: - Calendar Sync Section
+                    CinematicFormSection(titleLocKey: "add.travel.calendar") {
+                        VStack(spacing: 0) {
+                            CinematicFormRow(icon: "calendar.badge.plus", iconColor: TPDesign.celestialBlue) {
+                                Toggle("add.travel.calendar_sync".localized, isOn: $syncToCalendar)
+                                    .font(TPDesign.bodyFont())
+                                    .tint(Color.tpAccent)
+                            }
+                        }
+                    }
+                    .cinematicFadeIn(delay: 0.18)
+
                     // MARK: - Status Section
                     CinematicFormSection(titleLocKey: "add.travel.status") {
                         VStack(spacing: 0) {
@@ -131,8 +177,15 @@ struct AddTravelView: View {
             status: selectedStatus.rawValue,
             type: selectedType.rawValue
         )
+
+        // Budget
+        if let budget = Double(budgetText), budget > 0 {
+            newTravel.budget = budget
+            newTravel.currency = selectedCurrency
+        }
+
         modelContext.insert(newTravel)
-        
+
         // Finalize buffered operations to ensure data appears immediately in @Query
         try? modelContext.processPendingChanges()
         try? modelContext.save()
@@ -143,6 +196,16 @@ struct AddTravelView: View {
             Task {
                 await NotificationService.shared.scheduleTripReminder(for: newTravel)
                 await NotificationService.shared.schedulePackingReminder(for: newTravel)
+            }
+        }
+
+        // Calendar sync
+        if syncToCalendar {
+            Task {
+                if let eventId = await CalendarSyncService.shared.createEvent(for: newTravel) {
+                    newTravel.calendarEventId = eventId
+                    try? modelContext.save()
+                }
             }
         }
     }

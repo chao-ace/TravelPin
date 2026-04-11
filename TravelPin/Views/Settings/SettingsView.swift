@@ -8,6 +8,8 @@ struct SettingsView: View {
     @AppStorage("cloudSyncEnabled") private var cloudSyncEnabled = false
     @Query private var travels: [Travel]
     @Environment(\.modelContext) private var modelContext
+    @ObservedObject var subscription = SubscriptionManager.shared
+    @ObservedObject var usageTracker = UsageTracker.shared
 
     @State private var showFeedback = false
 
@@ -18,14 +20,21 @@ struct SettingsView: View {
                     // MARK: - App Identity Header
                     appIdentityHeader
 
-                    // MARK: - AI Provider Section
-                    SettingsSection(title: "settings.section.ai".localized) {
-                        NavigationLink(destination: AIProviderSettingsView()) {
+                    // MARK: - TravelPin AI Section
+                    SettingsSection(title: "TravelPin AI") {
+                        NavigationLink(destination: TravelPinAIView()) {
                             SettingsRow(
-                                icon: "cpu",
+                                icon: "sparkles",
                                 iconColor: .purple,
-                                title: "settings.row.ai_config".localized,
-                                subtitle: AIProviderRegistry.shared.activeProviderType.displayName
+                                title: {
+                                    if subscription.isSubscribed {
+                                        return "TravelPin AI  PRO"
+                                    }
+                                    return "TravelPin AI"
+                                }(),
+                                subtitle: subscription.isSubscribed
+                                    ? "已订阅 · 无限使用"
+                                    : "已使用 \(usageTracker.usageCount)/\(usageTracker.freeTierLimit) 次"
                             )
                         }
                     }
@@ -33,7 +42,12 @@ struct SettingsView: View {
                     // MARK: - User Context Section
                     SettingsSection(title: "settings.section.account".localized) {
                         NavigationLink(destination: ProfileView()) {
-                            SettingsRow(icon: "person.crop.circle.fill", iconColor: .tpAccent, title: "profile.user.name".localized, subtitle: "profile.user.role".localized)
+                            SettingsRow(
+                                icon: "person.crop.circle.fill",
+                                iconColor: .tpAccent,
+                                title: "profile.user.name".localized,
+                                subtitle: subscription.isSubscribed ? "Pro 会员" : "profile.user.role".localized
+                            )
                         }
                         SettingsDivider()
                         ToggleRow(icon: "icloud.fill", iconColor: .blue, title: "settings.row.icloud".localized, isOn: $cloudSyncEnabled)
@@ -372,243 +386,6 @@ struct AppIconSettingsView: View {
                 .fill(isSelected ? Color.tpAccent.opacity(0.05) : TPDesign.secondaryBackground)
                 .overlay(
                     RoundedRectangle(cornerRadius: 20)
-                        .stroke(isSelected ? Color.tpAccent.opacity(0.3) : TPDesign.divider, lineWidth: 1)
-                )
-        )
-    }
-}
-
-struct AIProviderSettingsView: View {
-    @ObservedObject var registry = AIProviderRegistry.shared
-    @State private var showAPIKeySuccess = false
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                // Provider Selection
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("选择 AI 模型")
-                        .font(TPDesign.overline())
-                        .foregroundStyle(TPDesign.textTertiary)
-                        .padding(.leading, 4)
-
-                    ForEach(AIProviderType.allCases, id: \.self) { type in
-                        let isSelected = registry.activeProviderType == type
-                        Button {
-                            TPHaptic.selection()
-                            registry.activeProviderType = type
-                        } label: {
-                            providerRow(type: type, isSelected: isSelected)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-
-                // API Key Input (shown for OpenAI / Anthropic)
-                if registry.activeProviderType == .openAI || registry.activeProviderType == .anthropic {
-                    apiKeySection
-                }
-
-                // Local template info
-                if registry.activeProviderType == .localTemplate {
-                    localTemplateInfo
-                }
-
-                // Foundation Models info
-                if registry.activeProviderType == .foundationModels {
-                    foundationModelsInfo
-                }
-
-                Spacer(minLength: 40)
-            }
-            .padding(20)
-        }
-        .navigationTitle("AI 模型配置")
-        .navigationBarTitleDisplayMode(.inline)
-        .background(TPDesign.backgroundGradient)
-        .alert("API Key 已保存", isPresented: $showAPIKeySuccess) {
-            Button("好的") {}
-        }
-    }
-
-    private var apiKeySection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("API 密钥")
-                .font(TPDesign.overline())
-                .foregroundStyle(TPDesign.textTertiary)
-                .padding(.leading, 4)
-
-            if registry.activeProviderType == .openAI {
-                SecureField("sk-...", text: $registry.openAIKey)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 15, design: .monospaced))
-                    .padding(14)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(TPDesign.secondaryBackground)
-                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(TPDesign.divider, lineWidth: 1))
-                    )
-                    .autocorrectionDisabled()
-                    .autocapitalization(.none)
-
-                HStack(spacing: 6) {
-                    Image(systemName: "lock.shield.fill")
-                        .font(.system(size: 11))
-                    Text("密钥仅存储在您的设备本地，不会上传至任何服务器")
-                        .font(.system(size: 11))
-                }
-                .foregroundStyle(TPDesign.textTertiary)
-                .padding(.leading, 4)
-            } else {
-                SecureField("sk-ant-...", text: $registry.anthropicKey)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 15, design: .monospaced))
-                    .padding(14)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(TPDesign.secondaryBackground)
-                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(TPDesign.divider, lineWidth: 1))
-                    )
-                    .autocorrectionDisabled()
-                    .autocapitalization(.none)
-
-                HStack(spacing: 6) {
-                    Image(systemName: "lock.shield.fill")
-                        .font(.system(size: 11))
-                    Text("密钥仅存储在您的设备本地，不会上传至任何服务器")
-                        .font(.system(size: 11))
-                }
-                .foregroundStyle(TPDesign.textTertiary)
-                .padding(.leading, 4)
-            }
-
-            Button {
-                TPHaptic.notification(.success)
-                showAPIKeySuccess = true
-            } label: {
-                Label("验证并保存", systemImage: "checkmark.circle")
-                    .font(TPDesign.bodyFont(15, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(TPDesign.accentGradient)
-                    .clipShape(Capsule())
-            }
-            .buttonStyle(CinematicButtonStyle())
-            .padding(.top, 4)
-        }
-        .padding(.top, 8)
-    }
-
-    private var localTemplateInfo: some View {
-        VStack(spacing: 16) {
-            HStack(spacing: 12) {
-                Image(systemName: "doc.text.fill")
-                    .font(.title2)
-                    .foregroundStyle(Color.tpAccent)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("智能模板")
-                        .font(TPDesign.bodyFont(16, weight: .bold))
-                    Text("无需联网，基于内置模板生成游记内容。适合离线使用场景。")
-                        .font(TPDesign.bodyFont(13))
-                        .foregroundStyle(TPDesign.textSecondary)
-                }
-            }
-            .padding(20)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color.tpAccent.opacity(0.05))
-                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.tpAccent.opacity(0.15), lineWidth: 1))
-            )
-        }
-    }
-
-    private var foundationModelsInfo: some View {
-        VStack(spacing: 16) {
-            HStack(spacing: 12) {
-                Image(systemName: "apple.logo")
-                    .font(.title2)
-                    .foregroundStyle(TPDesign.obsidian)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Apple 本地模型")
-                        .font(TPDesign.bodyFont(16, weight: .bold))
-                    Text("使用设备端 AI 模型，数据完全在本地处理。需要 iOS 18.2 及以上版本。")
-                        .font(TPDesign.bodyFont(13))
-                        .foregroundStyle(TPDesign.textSecondary)
-                }
-            }
-            .padding(20)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(TPDesign.obsidian.opacity(0.03))
-                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(TPDesign.divider, lineWidth: 1))
-            )
-        }
-    }
-
-    private func providerIcon(for type: AIProviderType) -> some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 10)
-                .fill(iconColor(for: type).opacity(0.1))
-                .frame(width: 40, height: 40)
-            Image(systemName: iconSystemName(for: type))
-                .font(.system(size: 16, weight: .bold))
-                .foregroundStyle(iconColor(for: type))
-        }
-    }
-
-    private func iconColor(for type: AIProviderType) -> Color {
-        switch type {
-        case .foundationModels: return .black
-        case .openAI: return .green
-        case .anthropic: return .orange
-        case .localTemplate: return Color.tpAccent
-        }
-    }
-
-    private func iconSystemName(for type: AIProviderType) -> String {
-        switch type {
-        case .foundationModels: return "apple.logo"
-        case .openAI: return "sparkles"
-        case .anthropic: return "brain"
-        case .localTemplate: return "doc.text.fill"
-        }
-    }
-
-    private func providerDescription(for type: AIProviderType) -> String {
-        switch type {
-        case .foundationModels: return "Apple 设备端模型，隐私优先"
-        case .openAI: return "GPT 系列，需要 API Key"
-        case .anthropic: return "Claude 系列，需要 API Key"
-        case .localTemplate: return "内置模板，无需联网"
-        }
-    }
-
-    private func providerRow(type: AIProviderType, isSelected: Bool) -> some View {
-        HStack(spacing: 14) {
-            providerIcon(for: type)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(type.displayName)
-                    .font(TPDesign.bodyFont(16, weight: .bold))
-                    .foregroundStyle(TPDesign.obsidian)
-                Text(providerDescription(for: type))
-                    .font(TPDesign.bodyFont(12))
-                    .foregroundStyle(TPDesign.textTertiary)
-            }
-            Spacer()
-            if isSelected {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(Color.tpAccent)
-            }
-        }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(isSelected ? Color.tpAccent.opacity(0.06) : TPDesign.secondaryBackground)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
                         .stroke(isSelected ? Color.tpAccent.opacity(0.3) : TPDesign.divider, lineWidth: 1)
                 )
         )

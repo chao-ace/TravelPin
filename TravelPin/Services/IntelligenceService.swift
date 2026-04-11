@@ -33,20 +33,15 @@ class IntelligenceService: ObservableObject {
     @Published var healthAuthorized: Bool = false
     @Published var locationAuthorized: Bool = false
 
+    /// Real-time weather info for the active travel.
+    @Published var currentWeather: WeatherInfo? = nil
+
     private let healthStore = HKHealthStore()
     private let weatherService = WeatherService.shared
     private let locationManager = CLLocationManager()
 
     private init() {
-        // Debug Tip: Pre-set a recommendation to verify the Blue UI
-        self.activeRecommendation = IntelligenceRecommendation(
-            trigger: .distance(meters: 100),
-            title: "行程优化中",
-            subtitle: "当前位置步行 5 分钟可到达热门景点，是否加入行程？",
-            actionType: .discoverRemote,
-            internalSpotID: nil,
-            remoteSpotName: "附近景点"
-        )
+        self.activeRecommendation = nil
     }
 
     // MARK: - Permission Requests
@@ -186,4 +181,114 @@ class IntelligenceService: ObservableObject {
     func dismiss() {
         self.activeRecommendation = nil
     }
+
+    // MARK: - Real-time Weather for Travel
+
+    /// Fetch current weather for the travel's first spot and update `currentWeather`.
+    func fetchWeatherForTravel(_ travel: Travel) async {
+        guard let coordinate = travel.spots.first?.coordinate else { return }
+        guard let weather = await fetchWeather(for: coordinate) else { return }
+
+        let current = weather.currentWeather
+        let temp = current.temperature.value
+        let condition = current.condition.description
+        let isRainy = current.precipitationIntensity.value > 0
+
+        // Get hourly forecast for the next 24 hours
+        let hourlyForecast = Array(weather.hourlyForecast.prefix(24))
+        let hourly = hourlyForecast.map { hour in
+            HourForecast(
+                time: hour.date,
+                temperature: hour.temperature.value,
+                condition: hour.condition.description,
+                precipitationChance: hour.precipitationChance
+            )
+        }
+
+        await MainActor.run {
+            self.currentWeather = WeatherInfo(
+                temperature: temp,
+                condition: condition,
+                isRainy: isRainy,
+                hourlyForecast: hourly
+            )
+        }
+    }
+
+    // MARK: - Smart Packing Hints
+
+    /// Generate packing hints based on destination weather analysis.
+    func generateSmartPackingHints(for travel: Travel) async -> [String] {
+        guard let coordinate = travel.spots.first?.coordinate else {
+            return defaultPackingHints(for: travel)
+        }
+
+        guard let weather = await fetchWeather(for: coordinate) else {
+            return defaultPackingHints(for: travel)
+        }
+
+        let dailyForecast = Array(weather.dailyForecast.prefix(7))
+        let temp = dailyForecast.map { $0.highTemperature.value }
+        let avgTemp = temp.isEmpty ? 20 : temp.reduce(0, +) / Double(temp.count)
+        let hasRain = dailyForecast.contains { day in
+            day.precipitationChance > 0.3
+        }
+
+        var hints: [String] = []
+
+        // Temperature-based suggestions
+        if avgTemp < 10 {
+            hints += ["luggage.tpl.jacket".localized, "luggage.tpl.socks".localized, "厚围巾", "保暖内衣"]
+        } else if avgTemp > 30 {
+            hints += ["防晒霜", "luggage.tpl.sunglasses".localized, "luggage.tpl.bottle".localized, "遮阳帽"]
+        } else if avgTemp > 20 {
+            hints += ["luggage.tpl.tshirt".localized, "luggage.tpl.pants".localized]
+        }
+
+        // Rain-based suggestions
+        if hasRain {
+            hints += ["luggage.tpl.umbrella".localized, "一次性雨衣", "防水手机袋"]
+        }
+
+        // Travel type suggestions
+        switch travel.type {
+        case .concert:
+            hints += ["luggage.tpl.earphones".localized, "luggage.tpl.powerbank".localized, "荧光棒"]
+        case .chill:
+            hints += ["luggage.tpl.sunglasses".localized, "luggage.tpl.bottle".localized, "沙滩巾"]
+        case .business:
+            hints += ["正装", "luggage.tpl.laptop".localized, "名片夹"]
+        default:
+            break
+        }
+
+        return hints
+    }
+
+    private func defaultPackingHints(for travel: Travel) -> [String] {
+        var hints = ["luggage.tpl.passport".localized, "luggage.tpl.charger".localized, "luggage.tpl.medicine".localized]
+        switch travel.type {
+        case .concert: hints += ["luggage.tpl.earphones".localized, "luggage.tpl.powerbank".localized]
+        case .chill: hints += ["luggage.tpl.sunglasses".localized, "luggage.tpl.bottle".localized]
+        case .business: hints += ["luggage.tpl.laptop".localized, "正装"]
+        default: break
+        }
+        return hints
+    }
+}
+
+// MARK: - Weather Info Model
+
+struct WeatherInfo {
+    let temperature: Double
+    let condition: String
+    let isRainy: Bool
+    let hourlyForecast: [HourForecast]
+}
+
+struct HourForecast {
+    let time: Date
+    let temperature: Double
+    let condition: String
+    let precipitationChance: Double // 0.0 - 1.0
 }

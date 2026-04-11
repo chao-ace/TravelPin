@@ -1,0 +1,104 @@
+{
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "en_US",
+        "policyText" : "",
+        "policyURL" : ""
+      }
+    ]
+  },
+  "identifier" : "617061D0",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+
+  ],
+  "settings" : {
+    "_askToBuyEnabled" : false,
+    "_billingGracePeriodEnabled" : false,
+    "_billingIssuesEnabled" : false,
+    "_disableDialogs" : false,
+    "_failTransactionsEnabled" : false,
+    "_locale" : "zh_Hans",
+    "_renewalBillingIssuesEnabled" : false,
+    "_storefront" : "CHN",
+    "_storeKitErrors" : [
+
+    ],
+    "_timeRate" : 0
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "22023466",
+      "localizations" : [
+
+      ],
+      "name" : "TravelPin AI",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "12",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6761913790",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "解锁全部 AI 功能，包括智能日记、行程规划、行李建议等",
+              "displayName" : "Travel Pro - 月度会员",
+              "locale" : "zh_Hans"
+            }
+          ],
+          "productID" : "top.chaoace.travelpin.subscription.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "TravelPin Pro Monthly",
+          "subscriptionGroupID" : "22023466",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "68",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "6761914622",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "解锁全部 AI 功能，年付更优惠，相当于每月仅 ¥5.7",
+              "displayName" : "Travel Pro - 年度会员",
+              "locale" : "zh_Hans"
+            }
+          ],
+          "productID" : "top.chaoace.travelpin.subscription.yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "TravelPin Pro Yearly",
+          "subscriptionGroupID" : "22023466",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

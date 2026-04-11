@@ -10,5 +10,6 @@ import SwiftUI
 struct TravelPinWidgetBundle: WidgetBundle {
     var body: some Widget {
         TravelPinWidget()
+        TripLiveActivity()
     }
 }

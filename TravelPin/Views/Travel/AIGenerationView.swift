@@ -7,6 +7,7 @@ struct AIGenerationView: View {
     @State private var selectedStyle: AIAssistantService.WritingStyle = .poetic
     @State private var generatedText = ""
     @State private var isGenerating = false
+    @State private var isEnhancedMode = false
     
     var body: some View {
         NavigationStack {
@@ -22,6 +23,11 @@ struct AIGenerationView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("common.close".localized) { dismiss() }
+                }
+            }
+            .sheet(isPresented: $showingUpgrade) {
+                NavigationStack {
+                    TravelPinAIView()
                 }
             }
         }
@@ -52,6 +58,27 @@ struct AIGenerationView: View {
             }
             .pickerStyle(.wheel)
             .frame(height: 120)
+
+            // Enhanced mode toggle for completed trips
+            if travel.status == .travelled {
+                HStack(spacing: 8) {
+                    Image(systemName: "photo.on.rectangle.angled")
+                        .foregroundStyle(Color.tpAccent)
+                    Text(locKey: "ai.review.enhanced")
+                        .font(TPDesign.bodyFont(14, weight: .medium))
+                    Spacer()
+                    Toggle("", isOn: $isEnhancedMode)
+                        .tint(Color.tpAccent)
+                        .labelsHidden()
+                }
+                .padding(.horizontal, 24)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color.tpAccent.opacity(0.04))
+                )
+                .padding(.horizontal, 30)
+            }
             
             CinematicPrimaryButton(
                 locKey: "ai.review.generate",
@@ -130,16 +157,19 @@ struct AIGenerationView: View {
         }
     }
     
+    @State private var showingUpgrade = false
+
     private func generateAction() {
-        if !NetworkMonitor.shared.isConnected {
-            ToastManager.shared.show(type: .warning, message: "ai.error.offline".localized)
-            return
-        }
-        
         isGenerating = true
         Task {
             do {
                 generatedText = try await AIAssistantService.shared.generateJournalComplete(for: travel, style: selectedStyle)
+            } catch AIProviderError.usageLimitExceeded {
+                await MainActor.run {
+                    isGenerating = false
+                    showingUpgrade = true
+                }
+                return
             } catch {
                 await MainActor.run {
                     ToastManager.shared.show(type: .error, message: error.localizedDescription)
@@ -149,7 +179,7 @@ struct AIGenerationView: View {
             }
             await MainActor.run {
                 isGenerating = false
-                if !generatedText.isEmpty && !generatedText.contains("生成失败") {
+                if !generatedText.isEmpty {
                     TPHaptic.notification(.success)
                 }
             }

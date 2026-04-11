@@ -9,8 +9,6 @@ class AIAssistantService: ObservableObject {
     @Published var isGenerating: Bool = false
     @Published var error: AIProviderError?
 
-    private let registry = AIProviderRegistry.shared
-
     private init() {}
 
     enum WritingStyle: String, CaseIterable {
@@ -31,11 +29,41 @@ class AIAssistantService: ObservableObject {
 
     // MARK: - Stream Generation
 
+    // MARK: - Access Check
+
+    /// Check if user can make an AI call. Returns true if allowed.
+    /// Free users get 20 uses; subscribers are unlimited.
+    private func canAccess() -> Bool {
+        if SubscriptionManager.shared.isSubscribed { return true }
+        return UsageTracker.shared.hasFreeUsesRemaining
+    }
+
+    private func handleSuccess() {
+        if !SubscriptionManager.shared.isSubscribed {
+            UsageTracker.shared.incrementUsage()
+        }
+    }
+
+    // MARK: - Core Proxy Call with Fallback
+
+    /// Try the remote AI proxy first; fall back to LocalTemplate on any failure.
+    private func callAI(prompt: String) async throws -> String {
+        // If proxy works, use it
+        if let result = try? await AIServiceProxy.shared.generateComplete(prompt: prompt) {
+            handleSuccess()
+            return result
+        }
+        // Fallback: local template always works
+        handleSuccess()
+        return try await LocalTemplateProvider().generateComplete(prompt: prompt)
+    }
+
+    // MARK: - Stream Generation
+
     func generateJournalStream(for travel: Travel, style: WritingStyle = .poetic) {
         guard !isGenerating else { return }
 
         let prompt = buildPrompt(for: travel, style: style)
-        let provider = registry.activeProvider
 
         isGenerating = true
         generatedText = ""
@@ -43,16 +71,24 @@ class AIAssistantService: ObservableObject {
 
         Task {
             do {
-                var effectiveProvider = provider
-                
-                if await !effectiveProvider.isAvailable {
-                    effectiveProvider = LocalTemplateProvider()
+                guard canAccess() else {
+                    throw AIProviderError.usageLimitExceeded
                 }
 
-                let stream = try await effectiveProvider.generate(prompt: prompt)
-                for try await token in stream {
-                    self.generatedText += token
+                let fullText = try await callAI(prompt: prompt)
+
+                // Simulate streaming by revealing text progressively
+                let chars = Array(fullText)
+                let chunkSize = max(1, chars.count / 60)
+                var i = 0
+                while i < chars.count {
+                    let end = min(i + chunkSize, chars.count)
+                    self.generatedText += String(chars[i..<end])
+                    i = end
+                    try? await Task.sleep(nanoseconds: 15_000_000)
                 }
+            } catch let err as AIProviderError {
+                self.error = err
             } catch {
                 self.error = .networkError(error.localizedDescription)
             }
@@ -64,13 +100,12 @@ class AIAssistantService: ObservableObject {
 
     func generateJournalComplete(for travel: Travel, style: WritingStyle = .poetic) async throws -> String {
         let prompt = buildPrompt(for: travel, style: style)
-        var effectiveProvider = registry.activeProvider
-        
-        if await !effectiveProvider.isAvailable {
-            effectiveProvider = LocalTemplateProvider()
+
+        guard canAccess() else {
+            throw AIProviderError.usageLimitExceeded
         }
 
-        return try await effectiveProvider.generateComplete(prompt: prompt)
+        return try await callAI(prompt: prompt)
     }
 
     // MARK: - Prompt Builder
@@ -175,5 +210,165 @@ class AIAssistantService: ObservableObject {
 
     private func formatDate(_ date: Date) -> String {
         date.formatted(.dateTime.year().month().day())
+    }
+
+    // MARK: - AI Itinerary Generation
+
+    func generateItinerary(for travel: Travel) async throws -> [ItineraryDraft] {
+        let prompt = """
+        你是一位专业的旅行规划师。请为以下旅行生成每日行程建议。
+
+        旅行名称：\(travel.name)
+        出发日期：\(formatDate(travel.startDate))
+        返回日期：\(formatDate(travel.endDate))
+        共 \(travel.durationDays) 天
+        旅行类型：\(travel.type.displayName)
+
+        已有景点参考：
+        \(travel.spots.map { "- \($0.name)" }.joined(separator: "\n"))
+
+        请按以下 JSON 数组格式输出（不要包含其他文字）：
+        [{"day":1,"origin":"出发地","destination":"目的地","spots":["景点1","景点2"],"theme":"当日主题"}]
+
+        要求：
+        1. 每天安排 3-5 个景点，路线合理不绕路
+        2. 考虑旅行类型（\(travel.type.displayName)）的特点
+        3. 景点名称要具体真实
+        4. 合理安排用餐和休息时间
+        """
+
+        guard canAccess() else {
+            throw AIProviderError.usageLimitExceeded
+        }
+
+        let result = try await callAI(prompt: prompt)
+        return parseItineraryJSON(result)
+    }
+
+    private func parseItineraryJSON(_ text: String) -> [ItineraryDraft] {
+        // Extract JSON array from response
+        guard let startIndex = text.firstIndex(of: "["),
+              let endIndex = text.lastIndex(of: "]") else {
+            return []
+        }
+
+        let jsonString = String(text[startIndex...endIndex])
+        guard let data = jsonString.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
+            return []
+        }
+
+        return json.compactMap { item in
+            guard let day = item["day"] as? Int,
+                  let origin = item["origin"] as? String,
+                  let destination = item["destination"] as? String else { return nil }
+
+            let spots = item["spots"] as? [String] ?? []
+            let theme = item["theme"] as? String
+
+            return ItineraryDraft(
+                day: day,
+                origin: origin,
+                destination: destination,
+                suggestedSpots: spots,
+                theme: theme
+            )
+        }
+    }
+
+    // MARK: - AI Packing Suggestions
+
+    func generatePackingSuggestions(for travel: Travel, weatherForecast: String = "") async throws -> [PackingSuggestion] {
+        let weatherContext = weatherForecast.isEmpty ? "" : "\n目的地天气预报：\(weatherForecast)"
+
+        let prompt = """
+        你是一位旅行打包专家。请为以下旅行推荐行李清单。
+
+        旅行名称：\(travel.name)
+        天数：\(travel.durationDays) 天
+        旅行类型：\(travel.type.displayName)\(weatherContext)
+
+        已有行李：
+        \(travel.luggageItems.map { "- \($0.name)" }.joined(separator: "\n"))
+
+        请按以下 JSON 数组格式输出（不要包含其他文字）：
+        [{"name":"物品名","category":"Clothes|Products|Electronics|Essentials|Other","reason":"推荐理由"}]
+
+        要求：
+        1. 推荐 5-10 个最实用的物品（不包括已有的）
+        2. 根据旅行类型和天气精准推荐
+        3. 每个物品给出简短的推荐理由
+        """
+
+        guard canAccess() else {
+            throw AIProviderError.usageLimitExceeded
+        }
+
+        let result = try await callAI(prompt: prompt)
+        return parsePackingJSON(result)
+    }
+
+    private func parsePackingJSON(_ text: String) -> [PackingSuggestion] {
+        guard let startIndex = text.firstIndex(of: "["),
+              let endIndex = text.lastIndex(of: "]") else {
+            return []
+        }
+
+        let jsonString = String(text[startIndex...endIndex])
+        guard let data = jsonString.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
+            return []
+        }
+
+        return json.compactMap { item in
+            guard let name = item["name"] as? String else { return nil }
+            let category = item["category"] as? String ?? "Other"
+            let reason = item["reason"] as? String ?? ""
+
+            return PackingSuggestion(
+                name: name,
+                categoryRaw: category,
+                reason: reason
+            )
+        }
+    }
+
+    // MARK: - AI Annual Report
+
+    func generateAnnualReport(for year: Int, travels: [Travel]) async throws -> String {
+        let totalTrips = travels.count
+        let totalSpots = travels.reduce(0) { $0 + $1.spots.count }
+        let totalDays = travels.reduce(0) { $0 + $1.durationDays }
+        let totalPhotos = travels.reduce(0) { $0 + $1.spots.reduce(0) { $0 + $1.photos.count } }
+
+        let travelSummaries = travels.prefix(10).map { travel in
+            "- \(travel.name)（\(formatDate(travel.startDate)) - \(formatDate(travel.endDate))，\(travel.spots.count) 个景点）"
+        }.joined(separator: "\n")
+
+        let prompt = """
+        你是一位旅行文学作家。请为以下 \(year) 年旅行数据撰写一篇年度回顾。
+
+        ## 年度数据
+        - 总旅行次数：\(totalTrips) 次
+        - 总打卡地点：\(totalSpots) 个
+        - 总旅行天数：\(totalDays) 天
+        - 总照片数量：\(totalPhotos) 张
+
+        ## 旅行列表
+        \(travelSummaries)
+
+        请撰写一篇 500-800 字的年度旅行回顾，要求：
+        1. 用温暖而有力量的语言
+        2. 总结这一年的旅行风格和成长
+        3. 提炼出年度关键词
+        4. 以对未来的展望结尾
+        5. 用中文撰写
+        """
+
+        guard canAccess() else {
+            throw AIProviderError.usageLimitExceeded
+        }
+
+        return try await callAI(prompt: prompt)
     }
 }

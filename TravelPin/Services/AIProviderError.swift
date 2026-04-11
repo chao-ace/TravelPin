@@ -6,6 +6,7 @@ enum AIProviderError: LocalizedError {
     case noAPIKey
     case networkError(String)
     case generationFailed(String)
+    case usageLimitExceeded
 
     var errorDescription: String? {
         switch self {
@@ -19,6 +20,8 @@ enum AIProviderError: LocalizedError {
             return "网络错误：\(detail)"
         case .generationFailed(let detail):
             return "生成失败：\(detail)"
+        case .usageLimitExceeded:
+            return "免费使用次数已用完，请订阅 TravelPin AI 以继续使用"
         }
     }
 }

@@ -14,6 +14,8 @@ struct FootprintReviewView: View {
 
                 typeDistributionSection
 
+                heatmapAndAnnualSection
+
                 recentActivitySection
                 
                 // Extra clearance for the floating tab bar
@@ -57,62 +59,50 @@ struct FootprintReviewView: View {
     }
 
     private var statsGrid: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
-                NavigationLink(destination: StatDetailView(type: .journeys)) {
-                    StatPill(
-                        title: "footprint.stat.journeys_short".localized,
-                        value: "\(travels.count)",
-                        icon: "map.fill",
-                        iconColor: TPDesign.celestialBlue
-                    )
-                }
-                .buttonStyle(.plain)
-
-                NavigationLink(destination: StatDetailView(type: .spots)) {
-                    StatPill(
-                        title: "footprint.stat.visited_short".localized,
-                        value: "\(spots.count)",
-                        icon: "mappin.and.ellipse",
-                        iconColor: TPDesign.warmAmber
-                    )
-                }
-                .buttonStyle(.plain)
-
-                NavigationLink(destination: StatDetailView(type: .photos)) {
-                    StatPill(
-                        title: "footprint.stat.photos_short".localized,
-                        value: "\(spots.reduce(0) { $0 + $1.photos.count })",
-                        icon: "photo.stack",
-                        iconColor: TPDesign.marineDeep
-                    )
-                }
-                .buttonStyle(.plain)
-
-                NavigationLink(destination: StatDetailView(type: .planning)) {
-                    StatPill(
-                        title: "footprint.stat.planning_short".localized,
-                        value: "\(travels.filter { $0.status == .planning }.count)",
-                        icon: "pencil.and.outline",
-                        iconColor: TPDesign.warmGold
-                    )
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(.horizontal, 4)
-            .padding(.vertical, 8)
+        LazyVGrid(columns: [
+            GridItem(.flexible(), spacing: 12),
+            GridItem(.flexible(), spacing: 12)
+        ], spacing: 12) {
+            statGridItem(
+                type: .journeys,
+                title: "footprint.stat.journeys_short".localized,
+                value: "\(travels.count)",
+                icon: "map.fill",
+                iconColor: TPDesign.celestialBlue
+            )
+            
+            statGridItem(
+                type: .spots,
+                title: "footprint.stat.visited_short".localized,
+                value: "\(spots.count)",
+                icon: "mappin.and.ellipse",
+                iconColor: TPDesign.warmAmber
+            )
+            
+            statGridItem(
+                type: .photos,
+                title: "footprint.stat.photos_short".localized,
+                value: "\(spots.reduce(0) { $0 + $1.photos.count })",
+                icon: "photo.stack",
+                iconColor: TPDesign.marineDeep
+            )
+            
+            statGridItem(
+                type: .planning,
+                title: "footprint.stat.planning_short".localized,
+                value: "\(travels.filter { $0.status == .planning }.count)",
+                icon: "pencil.and.outline",
+                iconColor: TPDesign.warmGold
+            )
         }
+        .padding(.horizontal, 4)
         .cinematicFadeIn(delay: 0.15)
     }
 
-    struct StatPill: View {
-        let title: String
-        let value: String
-        let icon: String
-        let iconColor: Color
-
-        var body: some View {
-            VStack(spacing: 10) {
+    @ViewBuilder
+    private func statGridItem(type: StatType, title: String, value: String, icon: String, iconColor: Color) -> some View {
+        NavigationLink(destination: StatDetailView(type: type)) {
+            HStack(spacing: 12) {
                 ZStack {
                     Circle()
                         .fill(iconColor.opacity(0.1))
@@ -123,7 +113,7 @@ struct FootprintReviewView: View {
                 }
                 .overlay(Circle().stroke(iconColor.opacity(0.2), lineWidth: 0.5))
 
-                VStack(spacing: 2) {
+                VStack(alignment: .leading, spacing: 1) {
                     Text(value)
                         .font(TPDesign.titleFont(18))
                         .foregroundStyle(TPDesign.textPrimary)
@@ -133,19 +123,20 @@ struct FootprintReviewView: View {
                         .trackingWide()
                 }
             }
-            .frame(width: 84)
-            .padding(.vertical, 14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 12)
             .background(
-                RoundedRectangle(cornerRadius: 20)
+                RoundedRectangle(cornerRadius: 16)
                     .fill(TPDesign.secondaryBackground.opacity(0.8))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 20)
+                        RoundedRectangle(cornerRadius: 16)
                             .stroke(TPDesign.obsidian.opacity(0.1), lineWidth: 0.5)
                     )
-
             )
             .shadowSmall()
         }
+        .buttonStyle(.plain)
     }
 
     private var typeDistributionSection: some View {
@@ -265,37 +256,148 @@ struct FootprintReviewView: View {
         }
     }
 
+    private var heatmapAndAnnualSection: some View {
+        VStack(spacing: 16) {
+            // Footprint Heatmap Entry
+            let visitedSpots = spots.filter { $0.isVisited && $0.hasLocation }
+            if !visitedSpots.isEmpty {
+                NavigationLink(destination: FootprintHeatmapView(travels: travels)) {
+                    HStack(spacing: 16) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 14)
+                                .fill(TPDesign.celestialBlue.opacity(0.1))
+                                .frame(width: 52, height: 52)
+                            Image(systemName: "map.heatmap")
+                                .font(.system(size: 22, weight: .medium))
+                                .foregroundStyle(TPDesign.celestialBlue)
+                        }
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(locKey: "footprint.heatmap.title")
+                                .font(TPDesign.cardTitle())
+                                .foregroundStyle(TPDesign.textPrimary)
+                            Text(String(format: "footprint.heatmap.spots_count".localized, visitedSpots.count))
+                                .font(TPDesign.bodyFont(13))
+                                .foregroundStyle(TPDesign.textSecondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(.tertiary)
+                    }
+                    .padding(16)
+                    .background(
+                        RoundedRectangle(cornerRadius: TPDesign.radiusLarge)
+                            .fill(TPDesign.secondaryBackground.opacity(0.8))
+                            .overlay(RoundedRectangle(cornerRadius: TPDesign.radiusLarge).stroke(TPDesign.obsidian.opacity(0.08), lineWidth: 0.5))
+                    )
+                    .shadowSmall()
+                }
+                .buttonStyle(.plain)
+            }
+
+            // Annual Report Entry
+            let currentYear = Calendar.current.component(.year, from: Date())
+            let yearTravels = travels.filter {
+                $0.status == .travelled && Calendar.current.component(.year, from: $0.startDate) == currentYear
+            }
+            if !yearTravels.isEmpty {
+                NavigationLink(destination: AnnualReportView(year: currentYear, travels: yearTravels)) {
+                    HStack(spacing: 16) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 14)
+                                .fill(TPDesign.warmAmber.opacity(0.1))
+                                .frame(width: 52, height: 52)
+                            Image(systemName: "trophy.fill")
+                                .font(.system(size: 22, weight: .medium))
+                                .foregroundStyle(TPDesign.warmAmber)
+                        }
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(String(format: "annual.banner.title".localized, "\(currentYear)"))
+                                .font(TPDesign.cardTitle())
+                                .foregroundStyle(TPDesign.textPrimary)
+                            Text(String(format: "annual.banner.stat".localized, yearTravels.count))
+                                .font(TPDesign.bodyFont(13))
+                                .foregroundStyle(TPDesign.textSecondary)
+                        }
+                        Spacer()
+                        HStack(spacing: 4) {
+                            Text(locKey: "annual.banner.action")
+                                .font(TPDesign.bodyFont(13, weight: .bold))
+                                .foregroundStyle(TPDesign.warmAmber)
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(TPDesign.warmAmber)
+                        }
+                    }
+                    .padding(16)
+                    .background(
+                        RoundedRectangle(cornerRadius: TPDesign.radiusLarge)
+                            .fill(
+                                LinearGradient(
+                                    colors: [TPDesign.warmAmber.opacity(0.04), TPDesign.warmGold.opacity(0.02)],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .overlay(RoundedRectangle(cornerRadius: TPDesign.radiusLarge).stroke(TPDesign.warmGold.opacity(0.15), lineWidth: 0.5))
+                    )
+                    .shadowSmall()
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .cinematicFadeIn(delay: 0.25)
+    }
+
     private var recentActivitySection: some View {
-        VStack(alignment: .leading, spacing: 15) {
+        VStack(alignment: .leading, spacing: 12) {
             Text(locKey: "footprints.section.recent")
                 .font(TPDesign.titleFont(20))
                 .cinematicFadeIn(delay: 0.3)
 
             ForEach(Array(travels.prefix(3).enumerated()), id: \.element.id) { index, travel in
                 NavigationLink(destination: TravelDetailView(travel: travel)) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(travel.name)
-                                .font(TPDesign.bodyFont(18))
-                                .foregroundStyle(TPDesign.textPrimary)
-                            HStack(spacing: 6) {
-                                Text(travel.startDate.formatted(.dateTime.year().month()))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                Text(relativeDateString(from: travel.startDate))
-                                    .font(.caption)
-                                    .foregroundStyle(TPDesign.textTertiary)
-                            }
+                    HStack(spacing: 12) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.tpAccent.opacity(0.08))
+                                .frame(width: 36, height: 36)
+                            Image(systemName: travel.type.icon)
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(Color.tpAccent)
                         }
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(travel.name)
+                                .font(TPDesign.bodyFont(15, weight: .semibold))
+                                .foregroundStyle(TPDesign.textPrimary)
+                                .lineLimit(1)
+                            Text(travel.startDate.formatted(.dateTime.year().month()))
+                                .font(.system(size: 11))
+                                .foregroundStyle(TPDesign.textTertiary)
+                        }
+
                         Spacer()
+
+                        Text(relativeDateString(from: travel.startDate))
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(TPDesign.textTertiary)
+
                         Image(systemName: "chevron.right")
+                            .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(.tertiary)
                     }
-                    .padding()
-                    .contentShape(Rectangle()) // Ensure entire card is tappable
-                    .glassCard(cornerRadius: 16)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .contentShape(Rectangle())
+                    .background(
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(TPDesign.secondaryBackground.opacity(0.8))
+                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(TPDesign.obsidian.opacity(0.06), lineWidth: 0.5))
+                    )
                 }
-                .cinematicFadeIn(delay: Double(index) * 0.12 + 0.35)
+                .buttonStyle(.plain)
+                .cinematicFadeIn(delay: Double(index) * 0.1 + 0.35)
             }
         }
     }

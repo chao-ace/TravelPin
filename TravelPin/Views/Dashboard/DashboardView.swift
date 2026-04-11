@@ -8,83 +8,43 @@ struct DashboardView: View {
     @State private var showingAddTravel = false
     @State private var searchText = ""
     @State private var refreshID = UUID()
+    @State private var emptyPulsing = false
+    @State private var showingDNA = false
+    @State private var showingMemoryCapsule = false
+    @State private var memoryTravel: Travel?
 
     var body: some View {
         NavigationStack {
             ZStack {
-                // Background Divine Material
                 TPDesign.background.ignoresSafeArea()
-                
+
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 0) {
                         headerSection
-                        
-                        WorkflowProgressSection(travels: travels)
-                            .padding(.bottom, 24)
+
+                        // Compact progress bar (replaces bulky WorkflowProgressSection)
+                        CompactWorkflowBar(travels: travels)
+                            .padding(.horizontal, 24)
+                            .padding(.bottom, 20)
 
                         if travels.isEmpty {
                             emptyActionSection
                         } else {
-                            // Search Bar
                             searchBarSection
                                 .padding(.horizontal, 20)
-                                .padding(.bottom, 24)
+                                .padding(.bottom, 20)
 
                             if searchText.isEmpty {
-                                // Featured Cinema-Scope Section (Only shown when not searching)
-                                if let latestTravel = travels.first {
-                                    featuredTripSection(latestTravel)
-                                        .padding(.horizontal, 20)
-                                        .padding(.bottom, 32)
+                                // Memory Capsule Banner (if milestone)
+                                memoryCapsuleBanner
+
+                                // Travel DNA Card
+                                if !travels.filter({ $0.status == .travelled || $0.isCompleted }).isEmpty {
+                                    dnaCard
                                 }
 
-                                // Recent Journal List (First 3)
-                                VStack(spacing: 20) {
-                                    ForEach(Array(travels.prefix(3))) { travel in
-                                        NavigationLink(value: travel) {
-                                            TravelCard(travel: travel)
-                                        }
-                                        .buttonStyle(PlainButtonStyle())
-                                        .swipeActions(travel: travel)
-                                    }
-                                    
-                                    if travels.count > 3 {
-                                        NavigationLink(destination: TravelArchiveView(travels: travels)) {
-                                            HStack {
-                                                Text(locKey: "dashboard.action.view_all")
-                                                    .font(TPDesign.bodyFont(14, weight: .bold))
-                                                Image(systemName: "arrow.right")
-                                                    .font(.system(size: 12, weight: .bold))
-                                            }
-                                            .foregroundStyle(TPDesign.textTertiary)
-                                            .padding(.vertical, 12)
-                                            .padding(.horizontal, 24)
-                                            .background(
-                                                RoundedRectangle(cornerRadius: TPDesign.radiusMedium)
-                                                    .fill(TPDesign.secondaryBackground.opacity(0.95))
-                                                    .background(.ultraThinMaterial)
-                                                    .clipShape(RoundedRectangle(cornerRadius: TPDesign.radiusMedium))
-                                                    .overlay(
-                                                        RoundedRectangle(cornerRadius: TPDesign.radiusMedium)
-                                                            .stroke(
-                                                                LinearGradient(
-                                                                    colors: [TPDesign.obsidian.opacity(0.1), TPDesign.obsidian.opacity(0.05)],
-                                                                    startPoint: .topLeading,
-                                                                    endPoint: .bottomTrailing
-                                                                ),
-                                                                lineWidth: 0.5
-                                                            )
-                                                    )
-                                            )
-                                        }
-                                        .padding(.top, 8)
-                                        .cinematicFadeIn(delay: 0.3)
-                                    }
-                                }
-                                .padding(.horizontal, 20)
-                                .padding(.bottom, 100)
+                                statusGroupedSections
                             } else {
-                                // Search Results View
                                 searchResultsSection
                             }
                         }
@@ -98,6 +58,12 @@ struct DashboardView: View {
                 AddTravelView()
                     .environment(\.modelContext, modelContext)
             }
+            .sheet(isPresented: $showingDNA) {
+                TravelDNAView(dna: TravelDNAService.shared.generateDNA(from: travels))
+            }
+            .sheet(item: $memoryTravel) { travel in
+                MemoryCapsuleLoader(travel: travel)
+            }
             .navigationDestination(for: Travel.self) { travel in
                 TravelDetailView(travel: travel)
             }
@@ -108,8 +74,119 @@ struct DashboardView: View {
             .onAppear {
                 refreshID = UUID()
                 AppState.shared.updateWidgetData(travels: travels)
+                TravelLogicService.autoTransitionStatus(travels: travels, context: modelContext)
+                // Schedule memory notifications for completed trips
+                Task {
+                    await MemoryService.shared.scheduleMemoryNotifications(travels: travels)
+                }
             }
         }
+    }
+
+    // MARK: - Status-Grouped Travel Sections
+
+    private var statusGroupedSections: some View {
+        VStack(alignment: .leading, spacing: 32) {
+            // UPCOMING
+            let upcoming = travels.filter { ($0.status == .planning || $0.status == .wishing) && $0.isUpcoming }
+            if !upcoming.isEmpty {
+                travelGroupSection(
+                    title: "dashboard.section.upcoming".localized,
+                    icon: "calendar.badge.clock",
+                    color: TPDesign.celestialBlue,
+                    travels: Array(upcoming.prefix(2))
+                )
+            }
+
+            // ACTIVE
+            let active = travels.filter { $0.status == .traveling || $0.isActive }
+            if !active.isEmpty {
+                travelGroupSection(
+                    title: "dashboard.section.active".localized,
+                    icon: "airplane.departure",
+                    color: .green,
+                    travels: Array(active.prefix(2))
+                )
+            }
+
+            // RECENTLY COMPLETED — Featured trip goes here
+            let completed = travels.filter { $0.status == .travelled }
+            if !completed.isEmpty {
+                VStack(alignment: .leading, spacing: 16) {
+                    sectionHeader(
+                        title: "dashboard.section.completed".localized,
+                        icon: "checkmark.seal.fill",
+                        color: TPDesign.textSecondary
+                    )
+
+                    // Featured card for the latest completed trip
+                    if let latestCompleted = completed.first {
+                        featuredTripSection(latestCompleted)
+                    }
+
+                    ForEach(Array(completed.dropFirst().prefix(2))) { travel in
+                        NavigationLink(value: travel) {
+                            TravelCard(travel: travel)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .swipeActions(travel: travel)
+                    }
+                }
+                .padding(.horizontal, 20)
+            }
+
+            // View All
+            if travels.count > 5 {
+                NavigationLink(destination: TravelArchiveView(travels: travels)) {
+                    HStack {
+                        Text(locKey: "dashboard.action.view_all")
+                            .font(TPDesign.bodyFont(14, weight: .bold))
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 12, weight: .bold))
+                    }
+                    .foregroundStyle(TPDesign.textTertiary)
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 24)
+                    .background(
+                        RoundedRectangle(cornerRadius: TPDesign.radiusMedium)
+                            .fill(TPDesign.secondaryBackground.opacity(0.95))
+                            .background(.ultraThinMaterial)
+                            .clipShape(RoundedRectangle(cornerRadius: TPDesign.radiusMedium))
+                    )
+                }
+                .padding(.horizontal, 20)
+            }
+
+            Spacer(minLength: 100)
+        }
+    }
+
+    private func travelGroupSection(title: String, icon: String, color: Color, travels: [Travel]) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            sectionHeader(title: title, icon: icon, color: color)
+
+            ForEach(travels) { travel in
+                NavigationLink(value: travel) {
+                    TravelCard(travel: travel)
+                }
+                .buttonStyle(PlainButtonStyle())
+                .swipeActions(travel: travel)
+            }
+        }
+        .padding(.horizontal, 20)
+    }
+
+    private func sectionHeader(title: String, icon: String, color: Color) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(color)
+            Text(title)
+                .font(TPDesign.overline())
+                .foregroundStyle(TPDesign.textTertiary)
+                .tracking(2)
+        }
+        .padding(.horizontal, 4)
     }
 }
 
@@ -173,6 +250,11 @@ extension DashboardView {
     private var headerSection: some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 6) {
+                Text(greetingText)
+                    .font(TPDesign.bodyFont(15, weight: .medium))
+                    .foregroundStyle(TPDesign.textSecondary)
+                    .trackingMedium()
+
                 HStack(spacing: 8) {
                     Text(locKey: "dashboard.header.title")
                     Text("(\(travels.count))")
@@ -180,15 +262,23 @@ extension DashboardView {
                 }
                 .font(TPDesign.editorialSerif(36))
                 .foregroundStyle(TPDesign.obsidian)
-                
-                Text(locKey: "dashboard.header.subtitle")
-                    .font(TPDesign.bodyFont(15))
+
+                // Quick stats pill
+                if !travels.isEmpty {
+                    HStack(spacing: 6) {
+                        Text("\(travels.count)\("dashboard.recent.days_suffix".localized.dropLast())")
+                            .font(TPDesign.captionFont())
+                        Text("·")
+                            .foregroundStyle(TPDesign.textTertiary)
+                        Text("\(travels.reduce(0) { $0 + $1.spots.count })\("dashboard.recent.spots_suffix".localized)")
+                            .font(TPDesign.captionFont())
+                    }
                     .foregroundStyle(TPDesign.textSecondary)
-                    .trackingMedium()
+                }
             }
-            
+
             Spacer()
-            
+
             Button {
                 TPHaptic.mechanicalPress()
                 showingAddTravel = true
@@ -205,35 +295,169 @@ extension DashboardView {
         }
         .padding(.horizontal, 24)
         .padding(.top, 40)
-        .padding(.bottom, 24)
+        .padding(.bottom, 20)
+    }
+
+    private var greetingText: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        if hour < 12 {
+            return "dashboard.greeting.morning".localized
+        } else if hour < 18 {
+            return "dashboard.greeting.afternoon".localized
+        } else {
+            return "dashboard.greeting.evening".localized
+        }
+    }
+
+    // MARK: - Memory Capsule Banner
+
+    @ViewBuilder
+    private var memoryCapsuleBanner: some View {
+        let milestones = MemoryService.shared.checkMemoryMilestones(travels: travels)
+        if let travel = milestones.first {
+            let daysAgo = Calendar.current.dateComponents([.day], from: travel.endDate, to: Date()).day ?? 0
+            Button {
+                memoryTravel = travel
+            } label: {
+                MemoryCapsuleBanner(travel: travel, daysAgo: daysAgo)
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 20)
+            .padding(.bottom, 16)
+        }
+    }
+
+    // MARK: - DNA Card
+
+    private var dnaCard: some View {
+        Button {
+            showingDNA = true
+        } label: {
+            let dna = TravelDNAService.shared.generateDNA(from: travels)
+            TravelDNACard(dna: dna)
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 20)
+        .padding(.bottom, 8)
     }
 
     private var emptyActionSection: some View {
-        VStack(spacing: 30) {
+        VStack(spacing: 28) {
+            // Hero illustration
             ZStack {
                 Circle()
                     .fill(TPDesign.celestialGlow)
-                    .frame(width: 200, height: 200)
+                    .frame(width: 160, height: 160)
                     .opacity(0.3)
                     .blur(radius: 40)
-                    
+                    .scaleEffect(emptyPulsing ? 1.08 : 0.95)
+
                 Image(systemName: "map.circle")
-                    .font(.system(size: 60, weight: .ultraLight))
+                    .font(.system(size: 56, weight: .ultraLight))
                     .foregroundStyle(TPDesign.textTertiary)
+                    .scaleEffect(emptyPulsing ? 1.05 : 0.95)
             }
             .padding(.top, 20)
-            
-            CinematicPrimaryButton(
-                locKey: "dashboard.empty.button",
-                icon: "sparkles"
-            ) {
-                TPHaptic.notification(.success)
-                showingAddTravel = true
+            .onAppear {
+                withAnimation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true)) {
+                    emptyPulsing = true
+                }
             }
-            .padding(.horizontal, 40)
-            
-            Spacer(minLength: 60)
+
+            Text(locKey: "dashboard.empty.subtitle")
+                .font(TPDesign.bodyFont(14))
+                .foregroundStyle(TPDesign.textTertiary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+
+            // Quick start guide cards
+            VStack(spacing: 10) {
+                emptyGuideCard(
+                    icon: "sparkles",
+                    color: Color.tpAccent,
+                    title: "dashboard.guide.create.title".localized,
+                    subtitle: "dashboard.guide.create.desc".localized
+                ) {
+                    showingAddTravel = true
+                }
+
+                NavigationLink(destination: FootprintReviewView()) {
+                    emptyGuideCardContent(
+                        icon: "chart.bar.xaxis",
+                        color: TPDesign.warmAmber,
+                        title: "dashboard.guide.footprint.title".localized,
+                        subtitle: "dashboard.guide.footprint.desc".localized
+                    )
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink(destination: InspirationPlazaView()) {
+                    emptyGuideCardContent(
+                        icon: "sparkles.rectangle.stack",
+                        color: TPDesign.celestialBlue,
+                        title: "dashboard.guide.inspiration.title".localized,
+                        subtitle: "dashboard.guide.inspiration.desc".localized
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 24)
+
+            Spacer(minLength: 40)
         }
+        .cinematicFadeIn(delay: 0.1)
+    }
+
+    private func emptyGuideCard(
+        icon: String,
+        color: Color,
+        title: String,
+        subtitle: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            emptyGuideCardContent(icon: icon, color: color, title: title, subtitle: subtitle)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func emptyGuideCardContent(icon: String, color: Color, title: String, subtitle: String) -> some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(color.opacity(0.1))
+                    .frame(width: 44, height: 44)
+                Image(systemName: icon)
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundStyle(color)
+            }
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(TPDesign.bodyFont(14, weight: .bold))
+                    .foregroundStyle(TPDesign.textPrimary)
+                Text(subtitle)
+                    .font(TPDesign.bodyFont(12, weight: .regular))
+                    .foregroundStyle(TPDesign.textSecondary)
+                    .lineLimit(1)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(TPDesign.textTertiary)
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: TPDesign.radiusLarge)
+                .fill(TPDesign.surface1)
+                .overlay(
+                    RoundedRectangle(cornerRadius: TPDesign.radiusLarge)
+                        .stroke(color.opacity(0.1), lineWidth: 1)
+                )
+        )
+        .shadowSmall()
     }
 
     private func featuredTripSection(_ travel: Travel) -> some View {
@@ -310,7 +534,7 @@ struct TravelArchiveView: View {
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
-                    .background(RoundedRectangle(cornerRadius: 14).fill(TPDesign.alabaster))
+                    .background(RoundedRectangle(cornerRadius: 14).fill(TPDesign.surface1.opacity(0.8)).background(.ultraThinMaterial).clipShape(RoundedRectangle(cornerRadius: 14)))
                     .overlay(RoundedRectangle(cornerRadius: 14).stroke(TPDesign.divider, lineWidth: 0.5))
                     .padding(.horizontal, 20)
 
@@ -435,140 +659,130 @@ struct OnboardingTaskRow: View {
     }
 }
 
-// MARK: - Workflow Progress Section
+// MARK: - Compact Workflow Bar (Three Stages)
 
-struct WorkflowProgressSection: View {
+private struct CompactWorkflowBar: View {
     let travels: [Travel]
-    
-    @State private var isAnimating = false
-    
-    // Core Workflow Setup based on PRD / Docs
-    let stages = [
-        (title: "dashboard.workflow.stage1".localized, icon: "map.fill", steps: [
-            "workflow.stage1.step1".localized, "workflow.stage1.step2".localized, "workflow.stage1.step3".localized, "workflow.stage1.step4".localized, "workflow.stage1.step5".localized
-        ]),
-        (title: "dashboard.workflow.stage2".localized, icon: "figure.walk", steps: [
-            "workflow.stage2.step1".localized, "workflow.stage2.step2".localized, "workflow.stage2.step3".localized, "workflow.stage2.step4".localized, "workflow.stage2.step5".localized
-        ]),
-        (title: "dashboard.workflow.stage3".localized, icon: "photo.fill.on.rectangle.fill", steps: [
-            "workflow.stage3.step1".localized, "workflow.stage3.step2".localized, "workflow.stage3.step3".localized, "workflow.stage3.step4".localized, "workflow.stage3.step5".localized
-        ])
-    ]
-    
-    // Determine the current workflow stage
-    var currentStage: Int {
+
+    @State private var spinning = false
+
+    private var currentStage: Int {
         if travels.isEmpty { return 0 }
         if travels.contains(where: { $0.status == .traveling }) { return 1 }
         if travels.contains(where: { $0.status == .wishing || $0.status == .planning }) { return 0 }
-        return 2 // All travelled
+        return 2
     }
-    
+
+    private let stages = [
+        (title: "dashboard.workflow.stage1".localized, icon: "map.fill"),
+        (title: "dashboard.workflow.stage2".localized, icon: "figure.walk"),
+        (title: "dashboard.workflow.stage3".localized, icon: "photo.fill.on.rectangle.fill")
+    ]
+
     var body: some View {
-        VStack(spacing: 20) {
-            // Visual Rings
-            HStack(spacing: 0) {
-                ForEach(0..<3) { index in
-                    let isCompleted = index < currentStage
-                    let isActive = index == currentStage
-                    
-                    VStack(spacing: 8) {
-                        ZStack {
-                            if isActive {
-                                Circle()
-                                    .stroke(Color.tpAccent, style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
-                                    .frame(width: 52, height: 52)
-                                    .rotationEffect(Angle(degrees: isAnimating ? 360 : 0))
-                                    .animation(.linear(duration: 10).repeatForever(autoreverses: false), value: isAnimating)
-                                    .onAppear { isAnimating = true }
-                                
-                                Circle()
-                                    .fill(Color.tpAccent.opacity(0.12))
-                                    .frame(width: 42, height: 42)
-                                    
-                                Image(systemName: stages[index].icon)
-                                    .font(.system(size: 16, weight: .bold))
-                                    .foregroundStyle(Color.tpAccent)
-                            } else if isCompleted {
-                                Circle()
-                                    .fill(Color.tpAccent)
-                                    .frame(width: 42, height: 42)
-                                    
-                                Image(systemName: "checkmark")
-                                    .font(.system(size: 16, weight: .bold))
-                                    .foregroundStyle(.white)
-                            } else {
-                                Circle()
-                                    .fill(TPDesign.divider)
-                                    .frame(width: 42, height: 42)
-                                    
-                                Image(systemName: stages[index].icon)
-                                    .font(.system(size: 16, weight: .medium))
-                                    .foregroundStyle(TPDesign.textTertiary)
-                            }
-                        }
-                        
-                        Text(stages[index].title)
-                            .font(TPDesign.captionFont())
-                            .foregroundStyle(isActive ? Color.tpAccent : (isCompleted ? TPDesign.obsidian : TPDesign.textTertiary))
-                    }
-                    .frame(maxWidth: .infinity)
-                    
-                    if index < 2 {
-                        Rectangle()
-                            .fill(index < currentStage ? Color.tpAccent : TPDesign.divider)
-                            .frame(height: 2)
-                            .padding(.horizontal, -15)
-                            .offset(y: -12)
-                            .zIndex(-1)
-                    }
+        HStack(spacing: 0) {
+            ForEach(0..<3, id: \.self) { index in
+                stageNode(index: index)
+
+                if index < 2 {
+                    connectorLine(isComplete: (index + 1) <= currentStage)
                 }
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 10)
-            
-            // Sub-steps for the Active Stage
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(spacing: 6) {
-                    Image(systemName: "arrow.triangle.branch")
-                        .foregroundStyle(TPDesign.warmAmber)
-                    Text("\(stages[currentStage].title)\("dashboard.workflow.guide_suffix".localized)")
-                        .font(TPDesign.bodyFont(14, weight: .bold))
-                        .foregroundStyle(TPDesign.obsidian)
+        }
+        .padding(.vertical, 14)
+        .padding(.horizontal, 20)
+        .background(
+            RoundedRectangle(cornerRadius: TPDesign.radiusLarge)
+                .fill(TPDesign.surface1.opacity(0.7))
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: TPDesign.radiusLarge))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: TPDesign.radiusLarge)
+                .stroke(TPDesign.divider, lineWidth: 0.5)
+        )
+        .onAppear {
+            withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: false)) {
+                spinning = true
+            }
+        }
+    }
+
+    // MARK: - Stage Node
+
+    @ViewBuilder
+    private func stageNode(index: Int) -> some View {
+        VStack(spacing: 6) {
+            ZStack {
+                if index == currentStage {
+                    Circle()
+                        .stroke(Color.tpAccent.opacity(0.2), lineWidth: 3)
+                        .frame(width: 40, height: 40)
+                        .scaleEffect(spinning ? 1.3 : 1.0)
+                        .opacity(spinning ? 0 : 0.6)
                 }
-                .padding(.horizontal, 16)
-                
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 6) {
-                        let activeSteps = stages[currentStage].steps
-                        ForEach(0..<activeSteps.count, id: \.self) { stepIndex in
-                            Text(activeSteps[stepIndex])
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(TPDesign.obsidian)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                                .background(TPDesign.secondaryBackground.opacity(0.8))
-                                .clipShape(Capsule())
-                                .overlay(Capsule().stroke(TPDesign.divider, lineWidth: 0.5))
-                            
-                            if stepIndex < activeSteps.count - 1 {
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 10, weight: .bold))
-                                    .foregroundStyle(TPDesign.textTertiary)
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 16)
+
+                Circle()
+                    .fill(
+                        index < currentStage
+                        ? Color.tpAccent
+                        : index == currentStage
+                        ? Color.tpAccent.opacity(0.12)
+                        : TPDesign.divider.opacity(0.5)
+                    )
+                    .frame(width: 32, height: 32)
+
+                Image(systemName: index < currentStage ? "checkmark" : stages[index].icon)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(
+                        index < currentStage
+                        ? .white
+                        : index == currentStage
+                        ? Color.tpAccent
+                        : TPDesign.textTertiary
+                    )
+                    .rotationEffect(index == currentStage ? .degrees(spinning ? 360 : 0) : .zero)
+            }
+
+            Text(stages[index].title)
+                .font(.system(size: 10, weight: index == currentStage ? .bold : .medium))
+                .foregroundStyle(index == currentStage ? Color.tpAccent : TPDesign.textTertiary)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Connector Line
+
+    @ViewBuilder
+    private func connectorLine(isComplete: Bool) -> some View {
+        Rectangle()
+            .fill(isComplete ? Color.tpAccent.opacity(0.4) : TPDesign.divider)
+            .frame(height: 2)
+            .padding(.top, 15) // align with circle center
+    }
+}
+
+// MARK: - Memory Capsule Loader
+
+private struct MemoryCapsuleLoader: View {
+    let travel: Travel
+    @State private var memory: MemoryItem?
+
+    var body: some View {
+        Group {
+            if let memory {
+                MemoryCapsuleView(memory: memory)
+            } else {
+                ZStack {
+                    TPDesign.cinematicGradient.ignoresSafeArea()
+                    ProgressView()
+                        .tint(.white)
                 }
             }
-            .padding(.vertical, 16)
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(TPDesign.secondaryBackground.opacity(0.8))
-                    .background(.ultraThinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
-                    .overlay(RoundedRectangle(cornerRadius: 20).stroke(TPDesign.divider, lineWidth: 0.5))
-            )
-            .padding(.horizontal, 20)
+        }
+        .task {
+            memory = await MemoryService.shared.generateMemory(for: travel)
         }
     }
 }

@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import ActivityKit
+import CoreLocation
 
 struct TravelDetailView: View {
     @Bindable var travel: Travel
@@ -10,10 +11,14 @@ struct TravelDetailView: View {
     @State private var showingAddSpot = false
     @State private var showingAIGeneration = false
     @State private var showingEditTravel = false
+    @State private var showingExportTrail = false
     @State private var showingPublishSheet = false
     @State private var showingCollaborators = false
     @State private var showingCollabActivity = false
     @State private var showingPhotoGallery = false
+    @State private var showingClipboardImport = false
+    @State private var showingShareCard = false
+    @State private var showingRouteReplay = false
 
     @State private var editingSpot: Spot? = nil
     @State private var editingItinerary: Itinerary? = nil
@@ -23,6 +28,11 @@ struct TravelDetailView: View {
     @Namespace private var animation
     @State private var selectedSpot: Spot? = nil
     @ObservedObject var intelligence = IntelligenceService.shared
+    @ObservedObject var locationService = LocationService.shared
+
+    @State private var showingAIItinerary = false
+    @State private var showingCheckIn = false
+    @State private var isFABExpanded = false
 
     var body: some View {
         ZStack {
@@ -34,19 +44,85 @@ struct TravelDetailView: View {
                     // Immersive Photo Wall / Brand Header (Full-bleed 16:9)
                     headerSection
                         .onAppear {
-                            intelligence.performVibeCheck(for: travel)
+                            // Auto status transition
+                            TravelLogicService.autoTransitionStatus(travels: [travel], context: modelContext)
+
+                            // Fetch weather for active trips
+                            if travel.status == .traveling {
+                                let focus = TravelLogicService.getFocus(for: travel)
+                                if let current = focus.current ?? focus.next {
+                                    var distance: Double? = nil
+                                    if let next = focus.next, let c1 = current.coordinate, let c2 = next.coordinate {
+                                        let l1 = CLLocation(latitude: c1.latitude, longitude: c1.longitude)
+                                        let l2 = CLLocation(latitude: c2.latitude, longitude: c2.longitude)
+                                        distance = l1.distance(from: l2) / 1000.0
+                                    }
+                                    
+                                    TripActivityManager.shared.startTracking(
+                                        travel: travel,
+                                        currentSpot: current,
+                                        nextSpot: focus.next,
+                                        distance: distance
+                                    )
+                                }
+
+                                Task {
+                                    await intelligence.fetchWeatherForTravel(travel)
+                                    // Update activity with weather if available
+                                    if let temp = intelligence.currentWeather?.temperature {
+                                        let focus = TravelLogicService.getFocus(for: travel)
+                                        if let current = focus.current ?? focus.next {
+                                            TripActivityManager.shared.updateTracking(
+                                                currentSpot: current,
+                                                nextSpot: focus.next,
+                                                distance: nil, // Recalculate if needed
+                                                temperature: temp
+                                            )
+                                        }
+                                    }
+                                }
+                                // Start monitoring spot arrivals
+                                let planningSpots = travel.spots.filter { $0.status == .planning && $0.hasLocation }
+                                if !planningSpots.isEmpty {
+                                    locationService.startMonitoring(spots: planningSpots)
+                                }
+
+                                // Auto-start GPS route tracking
+                                if !RouteTrackingService.shared.isTracking {
+                                    RouteTrackingService.shared.startTracking(for: travel)
+                                }
+                            }
                         }
 
-                    // Intelligence Advice Overlay (Subtle floating valet)
-                    IntelligenceBanner(travel: travel)
-                        .padding(.top, -30) // Overlap the header for a layered look
-                        .zIndex(10)
+                    // Intelligence & Logic Feedback Layer
+                    VStack(spacing: 16) {
+                        IntelligenceBanner(travel: travel)
+                        
+                        LogicClosedLoopBanner(travel: travel)
+                    }
+                    .padding(.top, -30) // Overlap the header for a layered look
+                    .zIndex(10)
 
                     // Body Sections
                     VStack(alignment: .leading, spacing: 48) {
                         itinerarySection
-                        spotArchiveSection
-                        luggageMiniSection
+
+                        if !travel.itineraries.isEmpty {
+                            spotArchiveSection
+                        }
+
+                        budgetIntelligenceSection
+
+                        // Route tracking card (during travel)
+                        if travel.status == .traveling {
+                            routeTrackingSection
+                        }
+
+                        // Quick actions
+                        quickActionsSection
+
+                        // Developing features placeholder
+                        developingFeaturesSection
                     }
                     .padding(.top, 24)
                     .padding(.bottom, 120)
@@ -54,6 +130,35 @@ struct TravelDetailView: View {
                 }
             }
             .blur(radius: selectedSpot != nil ? 10 : 0)
+
+            // Quick Entry Floating Button (During-travel only)
+            if travel.status == .traveling && selectedSpot == nil {
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        expandedFAB
+                            .padding(.trailing, 24)
+                            .padding(.bottom, 32)
+                    }
+                }
+            }
+
+            // Spot Check-In Sheet
+            if let spot = locationService.checkedInSpot {
+                SpotCheckInView(
+                    spot: spot,
+                    travel: travel,
+                    onCheckIn: {
+                        locationService.checkedInSpot = nil
+                        TPHaptic.notification(.success)
+                    },
+                    onSkip: {
+                        locationService.checkedInSpot = nil
+                    }
+                )
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
 
             // Full Screen Immersive Expansion Overlay
             if let spot = selectedSpot {
@@ -81,11 +186,17 @@ struct TravelDetailView: View {
         .sheet(isPresented: $showingAIGeneration) {
             AIGenerationView(travel: travel)
         }
+        .sheet(isPresented: $showingAIItinerary) {
+            AIItineraryGenerationView(travel: travel)
+        }
         .sheet(isPresented: $showingEditTravel) {
             EditTravelView(travel: travel)
         }
         .fullScreenCover(isPresented: $showingPhotoGallery) {
             PhotoGalleryView(travel: travel)
+        }
+        .fullScreenCover(isPresented: $showingExportTrail) {
+            LongTrailExportView(travel: travel)
         }
         .fullScreenCover(item: $editingSpot) { spot in
             EditSpotView(spot: spot, travel: travel)
@@ -97,10 +208,22 @@ struct TravelDetailView: View {
             PublishTripView(travel: travel)
         }
         .sheet(isPresented: $showingCollaborators) {
-            CollaboratorListView(travel: travel)
+            CollaborationInviteView()
         }
         .sheet(isPresented: $showingCollabActivity) {
             CollaborationActivityView()
+        }
+        .sheet(isPresented: $showingClipboardImport) {
+            ClipboardImportSheet(travel: travel)
+                .environment(\.modelContext, modelContext)
+        }
+        .fullScreenCover(isPresented: $showingShareCard) {
+            ShareCardPreviewView(travel: travel)
+        }
+        .sheet(isPresented: $showingRouteReplay) {
+            NavigationStack {
+                RouteReplayView(waypoints: RouteTrackingService.shared.loadRoute(for: travel))
+            }
         }
     }
 
@@ -153,7 +276,7 @@ struct TravelDetailView: View {
                     .font(TPDesign.editorialSerif(40))
                     .foregroundStyle(.white)
                     .shadow(color: .black.opacity(0.3), radius: 10, x: 0, y: 5)
-                
+
                 HStack(spacing: 12) {
                     Label(travel.startDate.formatted(.dateTime.month().day()) + " - " + travel.endDate.formatted(.dateTime.day().month().year()), systemImage: "calendar")
                     Label("\(travel.itineraries.count)\("dashboard.recent.days_suffix".localized)", systemImage: "clock")
@@ -161,17 +284,65 @@ struct TravelDetailView: View {
                 .font(TPDesign.captionFont())
                 .foregroundStyle(.white.opacity(0.9))
                 .shadow(color: .black.opacity(0.2), radius: 5, x: 0, y: 2)
+
+                // Companion Avatar Stack
+                if !travel.companionNames.isEmpty {
+                    HStack(spacing: -8) {
+                        ForEach(Array(travel.companionNames.prefix(3).enumerated()), id: \.offset) { index, name in
+                            Text(String(name.prefix(1)))
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(.white)
+                                .frame(width: 28, height: 28)
+                                .background(
+                                    Circle().fill(
+                                        [TPDesign.celestialBlue, TPDesign.warmAmber, TPDesign.marineDeep][index % 3].opacity(0.8)
+                                    )
+                                )
+                                .overlay(Circle().stroke(.white.opacity(0.3), lineWidth: 1))
+                        }
+                        if travel.companionNames.count > 3 {
+                            Text("+\(travel.companionNames.count - 3)")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(.white.opacity(0.8))
+                                .frame(width: 28, height: 28)
+                                .background(Circle().fill(.black.opacity(0.4)))
+                                .overlay(Circle().stroke(.white.opacity(0.2), lineWidth: 1))
+                        }
+                        Text(String(format: "detail.header.companions".localized, travel.companionNames.count + 1))
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.7))
+                            .padding(.leading, 8)
+                    }
+                    .padding(.top, 4)
+                }
             }
             .padding(32)
             .padding(.bottom, 20) // Leave space for Intelligence overlap
             .background(
                 LinearGradient(colors: [.black.opacity(0.5), .clear], startPoint: .bottom, endPoint: .top)
             )
+
+            // Weather Overlay (only during travel)
+            if travel.status == .traveling, let weather = intelligence.currentWeather {
+                VStack {
+                    HStack {
+                        Spacer()
+                        WeatherOverlayView(weather: weather)
+                            .padding(.trailing, 20)
+                            .padding(.top, 50)
+                    }
+                    Spacer()
+                }
+            }
         }
     }
 
     private var appMenu: some View {
         Menu {
+            Button(action: { showingExportTrail = true }) {
+                Label("detail.menu.export_trail".localized, systemImage: "chart.bar.doc.horizontal")
+            }
+            Divider()
             Button(action: { showingEditTravel = true }) {
                 Label("detail.menu.edit_trip".localized, systemImage: "pencil")
             }
@@ -218,18 +389,54 @@ struct TravelDetailView: View {
             Text(locKey: "detail.itinerary.title")
                 .font(TPDesign.editorialSerif(28))
                 .foregroundStyle(TPDesign.obsidian)
-            
+
             Spacer()
-            
-            Button {
-                TPHaptic.notification(.success)
-                showingAIGeneration.toggle()
-            } label: {
-                Image(systemName: "wand.and.stars.inverse")
-                    .font(.system(size: 20))
-                    .foregroundStyle(Color.tpAccent)
-                    .padding(8)
-                    .background(Circle().fill(Color.tpAccent.opacity(0.1)))
+
+            HStack(spacing: 8) {
+                // 1. AI Itinerary
+                Button {
+                    TPHaptic.selection()
+                    showingAIItinerary.toggle()
+                } label: {
+                    Image(systemName: "wand.and.stars.inverse")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(Color.tpAccent)
+                        .frame(width: 36, height: 36)
+                        .background(Circle().fill(Color.tpAccent.opacity(0.1)))
+                }
+
+                // 2. AI Journal
+                Button {
+                    TPHaptic.selection()
+                    showingAIGeneration.toggle()
+                } label: {
+                    Image(systemName: "book.closed")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(Color.tpAccent)
+                        .frame(width: 36, height: 36)
+                        .background(Circle().fill(Color.tpAccent.opacity(0.1)))
+                }
+
+                // 3. Luggage
+                NavigationLink(destination: LuggageView(travel: travel)) {
+                    Image(systemName: "bag")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(TPDesign.celestialBlue)
+                        .frame(width: 36, height: 36)
+                        .background(Circle().fill(TPDesign.celestialBlue.opacity(0.1)))
+                }
+
+                // 4. Collaborate
+                Button {
+                    TPHaptic.selection()
+                    showingCollaborators = true
+                } label: {
+                    Image(systemName: "person.2")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(TPDesign.warmAmber)
+                        .frame(width: 36, height: 36)
+                        .background(Circle().fill(TPDesign.warmAmber.opacity(0.1)))
+                }
             }
             .offset(y: 4)
         }
@@ -421,13 +628,287 @@ struct TravelDetailView: View {
                     .foregroundStyle(.tertiary)
             }
             .padding(20)
-            .background(TPDesign.alabaster)
-            .clipShape(RoundedRectangle(cornerRadius: 20))
-            .overlay(RoundedRectangle(cornerRadius: 20).stroke(TPDesign.obsidian.opacity(0.05), lineWidth: 0.5))
+            .glassCard(cornerRadius: 20)
             .padding(.horizontal, 24)
         }
         .buttonStyle(.plain)
         .cinematicFadeIn(delay: 0.5)
+    }
+
+    private var expandedFAB: some View {
+        VStack(spacing: 12) {
+            // Expanded actions
+            if isFABExpanded {
+                Button {
+                    TPHaptic.selection()
+                    isFABExpanded = false
+                    showingAddSpot = true
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "mappin.circle.fill")
+                            .font(.system(size: 18))
+                        Text(locKey: "detail.action.add_spot")
+                            .font(TPDesign.bodyFont(12, weight: .bold))
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(TPDesign.accentGradient)
+                    .clipShape(Capsule())
+                    .shadowMedium()
+                }
+                .transition(.scale.combined(with: .opacity))
+
+                Button {
+                    TPHaptic.selection()
+                    isFABExpanded = false
+                    showingAddItinerary = true
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "list.bullet.circle.fill")
+                            .font(.system(size: 18))
+                        Text(locKey: "detail.action.add_first_day")
+                            .font(TPDesign.bodyFont(12, weight: .bold))
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(TPDesign.warmAccentGradient)
+                    .clipShape(Capsule())
+                    .shadowMedium()
+                }
+                .transition(.scale.combined(with: .opacity))
+            }
+
+            // Main FAB button
+            Button {
+                TPHaptic.mechanicalPress()
+                withAnimation(TPDesign.springBouncy) {
+                    isFABExpanded.toggle()
+                }
+            } label: {
+                ZStack {
+                    Circle()
+                        .fill(TPDesign.obsidian)
+                        .frame(width: 64, height: 64)
+                        .shadowFloating()
+
+                    Circle()
+                        .stroke(.white.opacity(0.12), lineWidth: 1)
+                        .frame(width: 58, height: 58)
+
+                    Image(systemName: isFABExpanded ? "xmark" : "camera.fill")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundStyle(.white)
+                        .rotationEffect(.degrees(isFABExpanded ? 90 : 0))
+                }
+            }
+        }
+        .animation(TPDesign.springBouncy, value: isFABExpanded)
+    }
+    
+    private var budgetIntelligenceSection: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            HStack(alignment: .bottom) {
+                Text(locKey: "detail.budget.title")
+                    .font(TPDesign.editorialSerif(28))
+                Spacer()
+                if let budget = travel.budget {
+                    Text(String(format: "detail.budget.left".localized, budget - travel.totalSpent))
+                        .font(TPDesign.captionFont())
+                        .fontWeight(.bold)
+                        .foregroundStyle(budget >= travel.totalSpent ? .green : .red)
+                }
+            }
+            .padding(.horizontal, 24)
+            
+            HStack(spacing: 16) {
+                let insight = TravelLogicService.generateInsight(for: travel)
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(locKey: "logic.stat.cost_per_km")
+                        .font(TPDesign.overline())
+                        .foregroundStyle(.secondary)
+                    Text(String(format: "¥%.1f/km", insight.costPerKm))
+                        .font(TPDesign.bodyFont(18, weight: .black))
+                }
+                .padding(20)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(TPDesign.secondaryBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 24))
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(locKey: "logic.stat.budget_usage")
+                        .font(TPDesign.overline())
+                        .foregroundStyle(.secondary)
+                    Text(String(format: "%.0f%%", (insight.budgetUtilization ?? 0) * 100))
+                        .font(TPDesign.bodyFont(18, weight: .black))
+                }
+                .padding(20)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(TPDesign.secondaryBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 24))
+            }
+            .padding(.horizontal, 24)
+        }
+        .cinematicFadeIn(delay: 0.6)
+    }
+
+    // MARK: - Route Tracking
+
+    private var routeTrackingSection: some View {
+        RouteTrackingSectionContent(travel: travel, showingRouteReplay: $showingRouteReplay)
+    }
+
+    // MARK: - Quick Actions
+
+    private var quickActionsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("快捷操作")
+                .font(TPDesign.overline())
+                .foregroundStyle(TPDesign.textTertiary)
+                .tracking(2)
+                .padding(.horizontal, 24)
+
+            // Clipboard import + Share card
+            HStack(spacing: 12) {
+                // Clipboard import
+                Button {
+                    showingClipboardImport = true
+                } label: {
+                    VStack(spacing: 8) {
+                        ZStack {
+                            Circle()
+                                .fill(TPDesign.warmAmber.opacity(0.1))
+                                .frame(width: 44, height: 44)
+                            Image(systemName: "doc.on.clipboard")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundStyle(TPDesign.warmAmber)
+                        }
+                        Text("tracking.action.import".localized)
+                            .font(TPDesign.bodyFont(12, weight: .medium))
+                            .foregroundStyle(TPDesign.textSecondary)
+                            .lineLimit(1)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.plain)
+
+                // Share card
+                Button {
+                    showingShareCard = true
+                } label: {
+                    VStack(spacing: 8) {
+                        ZStack {
+                            Circle()
+                                .fill(TPDesign.celestialBlue.opacity(0.1))
+                                .frame(width: 44, height: 44)
+                            Image(systemName: "square.and.arrow.up")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundStyle(TPDesign.celestialBlue)
+                        }
+                        Text("分享旅行卡片")
+                            .font(TPDesign.bodyFont(12, weight: .medium))
+                            .foregroundStyle(TPDesign.textSecondary)
+                            .lineLimit(1)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.plain)
+
+                // Route replay
+                let waypoints = RouteTrackingService.shared.loadRoute(for: travel)
+                if !waypoints.isEmpty {
+                    Button {
+                        showingRouteReplay = true
+                    } label: {
+                        VStack(spacing: 8) {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.tpAccent.opacity(0.1))
+                                    .frame(width: 44, height: 44)
+                                Image(systemName: "point.topleft.down.to.point.bottomright.curvepath")
+                                    .font(.system(size: 18, weight: .medium))
+                                    .foregroundStyle(Color.tpAccent)
+                            }
+                            Text("路线回放")
+                                .font(TPDesign.bodyFont(12, weight: .medium))
+                                .foregroundStyle(TPDesign.textSecondary)
+                                .lineLimit(1)
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 24)
+        }
+        .cinematicFadeIn(delay: 0.7)
+    }
+
+    // MARK: - Developing Features
+
+    private var developingFeaturesSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(locKey: "detail.section.coming_soon")
+                .font(TPDesign.overline())
+                .foregroundStyle(TPDesign.warmAmber)
+                .tracking(2)
+                .padding(.horizontal, 24)
+
+            developingFeatureCard(
+                icon: "arrow.triangle.branch",
+                title: "inspiration.reroute.title".localized,
+                desc: "inspiration.reroute.desc".localized,
+                color: TPDesign.celestialBlue
+            )
+        }
+        .cinematicFadeIn(delay: 0.7)
+    }
+
+    private func developingFeatureCard(icon: String, title: String, desc: String, color: Color) -> some View {
+        HStack(spacing: 16) {
+            ZStack {
+                Circle()
+                    .fill(color.opacity(0.08))
+                    .frame(width: 44, height: 44)
+                Image(systemName: icon)
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundStyle(color)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 8) {
+                    Text(title)
+                        .font(TPDesign.bodyFont(15, weight: .bold))
+                        .foregroundStyle(TPDesign.textPrimary)
+
+                    Text(locKey: "inspiration.badge.developing")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Capsule().fill(TPDesign.warmAmber))
+                }
+
+                Text(desc)
+                    .font(TPDesign.bodyFont(13))
+                    .foregroundStyle(TPDesign.textSecondary)
+                    .lineLimit(2)
+            }
+
+            Spacer()
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: TPDesign.radiusLarge)
+                .fill(TPDesign.surface1.opacity(0.6))
+                .overlay(
+                    RoundedRectangle(cornerRadius: TPDesign.radiusLarge)
+                        .stroke(color.opacity(0.1), lineWidth: 1)
+                )
+        )
+        .padding(.horizontal, 24)
     }
 }
 
@@ -557,6 +1038,102 @@ struct ItineraryRow: View {
     }
 }
 
+// MARK: - Route Tracking Section (separate view for proper @ObservedObject lifecycle)
+
+struct RouteTrackingSectionContent: View {
+    let travel: Travel
+    @Binding var showingRouteReplay: Bool
+    @Environment(\.modelContext) private var modelContext
+    @ObservedObject var tracker = RouteTrackingService.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(locKey: "tracking.title")
+                .font(TPDesign.editorialSerif(22))
+                .foregroundStyle(TPDesign.obsidian)
+                .padding(.horizontal, 24)
+
+            VStack(spacing: 12) {
+                HStack(spacing: 12) {
+                    Circle()
+                        .fill(tracker.isTracking ? Color.green : TPDesign.textTertiary)
+                        .frame(width: 10, height: 10)
+                        .shadow(color: tracker.isTracking ? .green.opacity(0.4) : .clear, radius: 4)
+
+                    Text(tracker.isTracking ? "tracking.status.active".localized : "tracking.status.inactive".localized)
+                        .font(TPDesign.bodyFont(14, weight: .medium))
+                        .foregroundStyle(TPDesign.textPrimary)
+
+                    Spacer()
+
+                    if tracker.isTracking {
+                        Text(String(format: "%.1f km", tracker.totalDistance / 1000))
+                            .font(.system(size: 14, weight: .bold, design: .monospaced))
+                            .foregroundStyle(TPDesign.celestialBlue)
+                    }
+                }
+
+                HStack(spacing: 12) {
+                    if tracker.isTracking {
+                        Button {
+                            tracker.stopTracking(context: modelContext)
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "stop.circle.fill")
+                                Text("tracking.action.stop".localized)
+                            }
+                            .font(TPDesign.bodyFont(14, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(.vertical, 10)
+                            .frame(maxWidth: .infinity)
+                            .background(Capsule().fill(Color.red.opacity(0.8)))
+                        }
+                    } else {
+                        Button {
+                            tracker.startTracking(for: travel)
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "location.circle.fill")
+                                Text("tracking.action.start".localized)
+                            }
+                            .font(TPDesign.bodyFont(14, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(.vertical, 10)
+                            .frame(maxWidth: .infinity)
+                            .background(Capsule().fill(TPDesign.celestialBlue))
+                        }
+                    }
+
+                    let waypoints = tracker.loadRoute(for: travel)
+                    if !waypoints.isEmpty {
+                        Button {
+                            showingRouteReplay = true
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "play.circle.fill")
+                                Text("tracking.action.replay".localized)
+                            }
+                            .font(TPDesign.bodyFont(14, weight: .bold))
+                            .foregroundStyle(TPDesign.celestialBlue)
+                            .padding(.vertical, 10)
+                            .frame(maxWidth: .infinity)
+                            .background(Capsule().fill(TPDesign.celestialBlue.opacity(0.1)))
+                        }
+                    }
+                }
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: TPDesign.radiusLarge)
+                    .fill(TPDesign.surface1)
+                    .overlay(RoundedRectangle(cornerRadius: TPDesign.radiusLarge).stroke(TPDesign.celestialBlue.opacity(0.1), lineWidth: 1))
+            )
+            .padding(.horizontal, 24)
+        }
+        .cinematicFadeIn(delay: 0.65)
+    }
+}
+
 struct SpotHighlightCard: View {
     let spot: Spot
     var namespace: Namespace.ID
@@ -616,50 +1193,51 @@ struct ImmersiveSpotDetailView: View {
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 0) {
-                        if spot.photos.isEmpty {
-                            if let snapshot = spot.mapSnapshot, let uiImage = UIImage(data: snapshot) {
-                                Image(uiImage: uiImage)
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                                    .frame(width: UIScreen.main.bounds.width)
-                                    .clipShape(Rectangle())
-                                    .overlay(
-                                        VStack {
-                                            Spacer()
-                                            HStack {
-                                                Label("detail.spot.map_overview".localized, systemImage: "map.fill")
-                                                    .font(.system(size: 10, weight: .bold))
-                                                    .foregroundStyle(.white)
-                                                    .padding(.horizontal, 10).padding(.vertical, 5)
-                                                    .background(.black.opacity(0.4)).clipShape(Capsule())
-                                                Spacer()
-                                            }.padding(20)
-                                        }
-                                    )
-                            } else {
-                                ZStack {
-                                    TPDesign.obsidian.frame(width: UIScreen.main.bounds.width)
-                                    Image(systemName: "photo").font(.system(size: 40)).foregroundStyle(.white.opacity(0.2))
-                                }
-                            }
-                        } else {
-                            ForEach(spot.photos) { photo in
-                                if let data = photo.data, let uiImage = UIImage(data: data) {
+                ZStack {
+                    // Blurred background
+                    if let firstPhoto = spot.photos.first, let data = firstPhoto.data, let uiImage = UIImage(data: data) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height * 0.55)
+                            .blur(radius: 40)
+                            .clipped()
+                    } else {
+                        TPDesign.obsidian
+                            .frame(width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height * 0.55)
+                    }
+
+                    // Foreground photo cards
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 16) {
+                            if spot.photos.isEmpty {
+                                if let snapshot = spot.mapSnapshot, let uiImage = UIImage(data: snapshot) {
                                     Image(uiImage: uiImage)
                                         .resizable()
                                         .aspectRatio(contentMode: .fill)
-                                        .frame(width: UIScreen.main.bounds.width)
-                                        .clipShape(Rectangle())
+                                        .frame(width: UIScreen.main.bounds.width - 48, height: UIScreen.main.bounds.height * 0.45)
+                                        .clipShape(RoundedRectangle(cornerRadius: 24))
+                                        .shadowFloating()
+                                }
+                            } else {
+                                ForEach(spot.photos) { photo in
+                                    if let data = photo.data, let uiImage = UIImage(data: data) {
+                                        Image(uiImage: uiImage)
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fill)
+                                            .frame(width: UIScreen.main.bounds.width - 48, height: UIScreen.main.bounds.height * 0.45)
+                                            .clipShape(RoundedRectangle(cornerRadius: 24))
+                                            .shadowFloating()
+                                    }
                                 }
                             }
                         }
+                        .padding(.horizontal, 24)
                     }
+                    .scrollTargetBehavior(.paging)
                 }
                 .frame(height: UIScreen.main.bounds.height * 0.55)
                 .matchedGeometryEffect(id: "image_\(spot.persistentModelID)", in: namespace)
-                .scrollTargetBehavior(.paging)
 
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 28) {
@@ -670,6 +1248,45 @@ struct ImmersiveSpotDetailView: View {
                                 Text(spot.name)
                                     .font(TPDesign.editorialSerif(44)).foregroundStyle(.white).lineLimit(2)
                                     .matchedGeometryEffect(id: "title_\(spot.persistentModelID)", in: namespace)
+
+                                // Rating & Cost Pills
+                                HStack(spacing: 8) {
+                                    if let rating = spot.rating {
+                                        HStack(spacing: 3) {
+                                            Image(systemName: "star.fill")
+                                                .font(.system(size: 10))
+                                            Text("\(rating)")
+                                                .font(TPDesign.captionFont())
+                                        }
+                                        .foregroundStyle(TPDesign.warmGold)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 5)
+                                        .background(TPDesign.warmGold.opacity(0.12))
+                                        .clipShape(Capsule())
+                                    }
+
+                                    if let cost = spot.cost {
+                                        HStack(spacing: 3) {
+                                            Image(systemName: "yensign.circle")
+                                                .font(.system(size: 10))
+                                            Text("¥\(Int(cost))")
+                                                .font(TPDesign.captionFont())
+                                        }
+                                        .foregroundStyle(TPDesign.celestialBlue)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 5)
+                                        .background(TPDesign.celestialBlue.opacity(0.12))
+                                        .clipShape(Capsule())
+                                    }
+
+                                    Text(spot.type.displayName)
+                                        .font(TPDesign.captionFont())
+                                        .foregroundStyle(TPDesign.textTertiary)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 5)
+                                        .background(TPDesign.textTertiary.opacity(0.08))
+                                        .clipShape(Capsule())
+                                }
                             }
                             Spacer()
                             Button(action: onEdit) {

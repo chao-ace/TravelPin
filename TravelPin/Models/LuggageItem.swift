@@ -65,7 +65,15 @@ enum LuggageCategory: String, CaseIterable, Codable {
     case essentials = "Essentials"
     case other = "Other"
 
-    var displayName: String { self.rawValue }
+    var displayName: String {
+        switch self {
+        case .clothes: return "luggage.category.clothes".localized
+        case .products: return "luggage.category.products".localized
+        case .electronics: return "luggage.category.electronics".localized
+        case .essentials: return "luggage.category.essentials".localized
+        case .other: return "luggage.category.other".localized
+        }
+    }
 
     var icon: String {
         switch self {
