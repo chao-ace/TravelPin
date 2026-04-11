@@ -829,7 +829,27 @@ class LanguageManager: ObservableObject {
 
         // Check-in enhancements
         "checkin.weather.auto": [.english: "AUTO CAPTURED", .simplifiedChinese: "自动捕获"],
-        "checkin.duration.hint": [.english: "Suggested %d min", .simplifiedChinese: "建议停留 %d 分钟"]
+        "checkin.duration.hint": [.english: "Suggested %d min", .simplifiedChinese: "建议停留 %d 分钟"],
+
+        // MARK: - Map Gesture Hints
+        "map.hint.pinch": [.english: "Pinch to zoom in/out", .simplifiedChinese: "双指缩放地图"],
+        "map.hint.drag": [.english: "Drag to pan the map", .simplifiedChinese: "拖动平移地图"],
+        "map.hint.tap_marker": [.english: "Tap markers for details", .simplifiedChinese: "点击标记查看详情"],
+        "map.hint.got_it": [.english: "Got It!", .simplifiedChinese: "知道了！"],
+
+        // Map download estimation
+        "map.download.estimate": [.english: "Download approx. %@ for offline use", .simplifiedChinese: "离线地图下载约 %@"],
+
+        // Route comparison
+        "map.compare.title": [.english: "Route Comparison", .simplifiedChinese: "路线对比"],
+        "map.compare.subtitle": [.english: "Review the optimized route before applying", .simplifiedChinese: "应用前查看优化后的路线"],
+        "map.compare.before": [.english: "BEFORE", .simplifiedChinese: "优化前"],
+        "map.compare.after": [.english: "AFTER", .simplifiedChinese: "优化后"],
+        "map.compare.apply": [.english: "Apply Optimized Route", .simplifiedChinese: "应用优化路线"],
+
+        // Wizard validation
+        "wizard.step1.name_required": [.english: "Please enter a journey name", .simplifiedChinese: "请输入旅程名称"],
+        "wizard.step1.name_ok": [.english: "Great name!", .simplifiedChinese: "好名字！"]
     ]
 }
 

@@ -15,6 +15,19 @@ struct TravelMapView: View {
     @State private var showOptimizeConfirm = false
     @State private var isOptimizing = false
 
+    // Route comparison
+    @State private var showRouteComparison = false
+    @State private var originalOrder: [Spot] = []
+    @State private var optimizedOrder: [Spot] = []
+
+    // First-use gesture hint
+    @AppStorage("map.gestureHintShown") private var gestureHintShown = false
+    @State private var showGestureHint = false
+
+    // Download estimation
+    @State private var estimatedTiles = 0
+    @State private var estimatedSize: String = ""
+
     var body: some View {
         ZStack(alignment: .topTrailing) {
             InteractiveOfflineMap(travel: travel, isOfflineMode: $isOfflineMode)
@@ -79,7 +92,7 @@ struct TravelMapView: View {
                     .clipShape(Capsule())
                 }
 
-                // Download Button
+                // Download Button (with estimation)
                 Button(action: downloadAction) {
                     HStack(spacing: 6) {
                         if isDownloading {
@@ -137,13 +150,27 @@ struct TravelMapView: View {
                 }
             }
             .padding()
+
+            // First-use gesture hint overlay
+            if showGestureHint {
+                gestureHintOverlay
+            }
         }
         .safeAreaInset(edge: .bottom) {
             daySelector
         }
         .onAppear {
+            calculateDownloadEstimate()
             if !NetworkMonitor.shared.isConnected {
                 ToastManager.shared.show(type: .warning, message: "map.error.offline".localized)
+            }
+            // Show gesture hint on first use
+            if !gestureHintShown {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    withAnimation(TPDesign.springDefault) {
+                        showGestureHint = true
+                    }
+                }
             }
         }
         .navigationTitle("detail.menu.explore_map".localized)
@@ -170,7 +197,110 @@ struct TravelMapView: View {
         } message: {
             Text(String(format: "map.alert.optimize_route.message".localized, travel.spots.filter { $0.hasLocation }.count))
         }
+        .sheet(isPresented: $showRouteComparison) {
+            RouteComparisonView(original: originalOrder, optimized: optimizedOrder, onApply: {
+                applyOptimizedOrder()
+                showRouteComparison = false
+            })
+        }
     }
+
+    // MARK: - Gesture Hint Overlay
+
+    private var gestureHintOverlay: some View {
+        VStack {
+            Spacer()
+
+            VStack(spacing: 16) {
+                // Pinch hint
+                HStack(spacing: 12) {
+                    Image(systemName: "hand.pinch")
+                        .font(.system(size: 24))
+                        .foregroundStyle(Color.tpAccent)
+                    Text(locKey: "map.hint.pinch")
+                        .font(TPDesign.bodyFont(14))
+                        .foregroundStyle(.white)
+                }
+
+                // Drag hint
+                HStack(spacing: 12) {
+                    Image(systemName: "hand.draw")
+                        .font(.system(size: 24))
+                        .foregroundStyle(Color.tpAccent)
+                    Text(locKey: "map.hint.drag")
+                        .font(TPDesign.bodyFont(14))
+                        .foregroundStyle(.white)
+                }
+
+                // Marker tap hint
+                HStack(spacing: 12) {
+                    Image(systemName: "hand.tap")
+                        .font(.system(size: 24))
+                        .foregroundStyle(Color.tpAccent)
+                    Text(locKey: "map.hint.tap_marker")
+                        .font(TPDesign.bodyFont(14))
+                        .foregroundStyle(.white)
+                }
+
+                Button {
+                    withAnimation(TPDesign.springDefault) {
+                        showGestureHint = false
+                    }
+                    gestureHintShown = true
+                    TPHaptic.selection()
+                } label: {
+                    Text(locKey: "map.hint.got_it")
+                        .font(TPDesign.bodyFont(14, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 10)
+                        .background(Color.tpAccent)
+                        .clipShape(Capsule())
+                }
+                .padding(.top, 4)
+            }
+            .padding(24)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(.ultraThinMaterial)
+                    .shadowMedium()
+            )
+            .padding(.horizontal, 32)
+
+            Spacer()
+        }
+        .transition(.opacity)
+    }
+
+    // MARK: - Download Estimation
+
+    private func calculateDownloadEstimate() {
+        let coordinates = travel.spots.compactMap { $0.coordinate }
+        guard !coordinates.isEmpty else {
+            estimatedTiles = 0
+            estimatedSize = "0 MB"
+            return
+        }
+
+        let lats = coordinates.map(\.latitude)
+        let lons = coordinates.map(\.longitude)
+        let span = MKCoordinateSpan(
+            latitudeDelta: max((lats.max()! - lats.min()!) * 1.3, 0.05),
+            longitudeDelta: max((lons.max()! - lons.min()!) * 1.3, 0.05)
+        )
+
+        // Rough estimate: ~200 tiles per 0.1° span at zoom levels 12-15
+        let areaFactor = span.latitudeDelta * span.longitudeDelta
+        estimatedTiles = max(Int(areaFactor * 20000), 50)
+        let sizeMB = Double(estimatedTiles) * 0.015 // ~15KB per tile average
+        if sizeMB < 1 {
+            estimatedSize = String(format: "%.0f KB", sizeMB * 1024)
+        } else {
+            estimatedSize = String(format: "%.1f MB", sizeMB)
+        }
+    }
+
+    // MARK: - Download Action
 
     private func downloadAction() {
         guard !isDownloading else { return }
@@ -178,7 +308,6 @@ struct TravelMapView: View {
         isDownloading = true
         downloadProgress = 0
 
-        // Calculate region from all spots in this travel
         let coordinates = travel.spots.compactMap { $0.coordinate }
         let center: CLLocationCoordinate2D
         let span: MKCoordinateSpan
@@ -212,37 +341,55 @@ struct TravelMapView: View {
         }
     }
 
-    private var daySelector: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack {
-                // "All" button
-                Button {
-                    selectedDay = 0
-                } label: {
-                    Text(locKey: "map.action.all")
-                        .font(.caption).bold()
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(selectedDay == 0 ? Color.tpAccent : Color.tpSurface)
-                        .foregroundStyle(selectedDay == 0 ? .white : .primary)
-                        .clipShape(Capsule())
-                }
+    // MARK: - Day Selector
 
-                ForEach(travel.itineraries.sorted(by: { $0.day < $1.day })) { itinerary in
+    private var daySelector: some View {
+        VStack(spacing: 0) {
+            // Download estimate bar
+            if !isOfflineMode && estimatedTiles > 0 {
+                HStack(spacing: 6) {
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 11))
+                    Text(String(format: "map.download.estimate".localized, estimatedSize))
+                        .font(.system(size: 11, weight: .medium))
+                    Spacer()
+                }
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 6)
+                .background(TPDesign.alabaster.opacity(0.5))
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack {
                     Button {
-                        selectedDay = itinerary.day
+                        selectedDay = 0
                     } label: {
-                        Text("\("add.itinerary.day".localized) \(itinerary.day)\("add.itinerary.unit".localized)")
+                        Text(locKey: "map.action.all")
                             .font(.caption).bold()
                             .padding(.horizontal, 16)
                             .padding(.vertical, 8)
-                            .background(selectedDay == itinerary.day ? Color.tpAccent : Color.tpSurface)
-                            .foregroundStyle(selectedDay == itinerary.day ? .white : .primary)
+                            .background(selectedDay == 0 ? Color.tpAccent : Color.tpSurface)
+                            .foregroundStyle(selectedDay == 0 ? .white : .primary)
                             .clipShape(Capsule())
                     }
+
+                    ForEach(travel.itineraries.sorted(by: { $0.day < $1.day })) { itinerary in
+                        Button {
+                            selectedDay = itinerary.day
+                        } label: {
+                            Text("\("add.itinerary.day".localized) \(itinerary.day)\("add.itinerary.unit".localized)")
+                                .font(.caption).bold()
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                                .background(selectedDay == itinerary.day ? Color.tpAccent : Color.tpSurface)
+                                .foregroundStyle(selectedDay == itinerary.day ? .white : .primary)
+                                .clipShape(Capsule())
+                        }
+                    }
                 }
+                .padding()
             }
-            .padding()
         }
         .glassCard(cornerRadius: 0)
     }
@@ -251,16 +398,151 @@ struct TravelMapView: View {
 
     private func optimizeRoute() {
         isOptimizing = true
+        originalOrder = travel.spots.filter { $0.hasLocation }
+
         Task {
             let optimized = await LocationService.shared.optimizeRouteWithDistances(spots: travel.spots)
             await MainActor.run {
-                for (index, spot) in optimized.enumerated() {
-                    spot.sequence = index + 1
-                }
+                optimizedOrder = optimized
                 isOptimizing = false
-                TPHaptic.notification(.success)
-                ToastManager.shared.show(type: .success, message: "map.toast.route_optimized".localized)
+
+                if originalOrder.count >= 2 {
+                    showRouteComparison = true
+                } else {
+                    applyOptimizedOrder()
+                }
             }
+        }
+    }
+
+    private func applyOptimizedOrder() {
+        for (index, spot) in optimizedOrder.enumerated() {
+            spot.sequence = index + 1
+        }
+        TPHaptic.notification(.success)
+        ToastManager.shared.show(type: .success, message: "map.toast.route_optimized".localized)
+    }
+}
+
+// MARK: - Route Comparison View
+
+private struct RouteComparisonView: View {
+    let original: [Spot]
+    let optimized: [Spot]
+    let onApply: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 24) {
+                    // Header
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(locKey: "map.compare.title")
+                            .font(TPDesign.editorialSerif(26))
+                            .foregroundStyle(TPDesign.obsidian)
+                        Text(locKey: "map.compare.subtitle")
+                            .font(TPDesign.bodyFont(14))
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, 24)
+
+                    // Before
+                    routeSection(
+                        title: Text(locKey: "map.compare.before"),
+                        spots: original,
+                        color: .secondary
+                    )
+
+                    // Arrow
+                    HStack {
+                        Spacer()
+                        Image(systemName: "arrow.down")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundStyle(Color.tpAccent)
+                        Spacer()
+                    }
+
+                    // After
+                    routeSection(
+                        title: Text(locKey: "map.compare.after"),
+                        spots: optimized,
+                        color: Color.tpAccent
+                    )
+
+                    // Apply button
+                    CinematicPrimaryButton(
+                        locKey: "map.compare.apply",
+                        icon: "checkmark.circle"
+                    ) {
+                        onApply()
+                    }
+                    .padding(.horizontal, 24)
+                }
+                .padding(.top, 20)
+                .padding(.bottom, 40)
+            }
+            .background(TPDesign.background)
+            .navigationTitle(locKey: "map.compare.title")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("common.cancel".localized) { dismiss() }
+                }
+            }
+        }
+    }
+
+    private func routeSection(title: Text, spots: [Spot], color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            title
+                .font(TPDesign.overline())
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 24)
+
+            VStack(spacing: 0) {
+                ForEach(Array(spots.prefix(8).enumerated()), id: \.element.id) { index, spot in
+                    HStack(spacing: 12) {
+                        // Number badge
+                        ZStack {
+                            Circle()
+                                .fill(color.opacity(0.12))
+                                .frame(width: 28, height: 28)
+                            Text("\(index + 1)")
+                                .font(.system(size: 12, weight: .bold, design: .rounded))
+                                .foregroundStyle(color)
+                        }
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(spot.name)
+                                .font(TPDesign.bodyFont(14, weight: .medium))
+                                .foregroundStyle(TPDesign.obsidian)
+                                .lineLimit(1)
+                            if let address = spot.address {
+                                Text(address)
+                                    .font(TPDesign.captionFont())
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            }
+                        }
+
+                        Spacer()
+
+                        Image(systemName: spot.type.icon)
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+
+                    if index < min(spots.count, 8) - 1 {
+                        Divider().padding(.leading, 56)
+                    }
+                }
+            }
+            .background(TPDesign.secondaryBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .padding(.horizontal, 24)
         }
     }
 }

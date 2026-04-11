@@ -582,58 +582,102 @@ struct TravelArchiveView: View {
 }
 
 extension View {
-    func swipeActions(travel: Travel) -> some View {
-        self.modifier(SwipeActionModifier(travel: travel))
+    func swipeActions(travel: Travel, onEdit: @escaping () -> Void = {}) -> some View {
+        self.modifier(SwipeActionModifier(travel: travel, onEdit: onEdit))
     }
 }
 
+/// Unified gesture modifier: left-swipe = delete, right-swipe = favorite, long-press = edit.
 struct SwipeActionModifier: ViewModifier {
     let travel: Travel
+    let onEdit: () -> Void
     @Environment(\.modelContext) private var modelContext
     @State private var offset: CGFloat = 0
+    @State private var isFavorite = false
 
     func body(content: Content) -> some View {
-        ZStack(alignment: .trailing) {
-            Rectangle()
-                .fill(Color.red)
-                .clipShape(UnevenRoundedRectangle(bottomTrailingRadius: 18, topTrailingRadius: 18))
-                .frame(width: max(0, -offset))
-                
-            Image(systemName: "trash")
-                .foregroundStyle(.white)
-                .font(.system(size: 20, weight: .semibold))
-                .padding(.trailing, 24)
-                .opacity(-offset > 40 ? 1 : 0)
-                .onTapGesture {
-                    withAnimation {
-                        modelContext.delete(travel)
-                        try? modelContext.save()
-                    }
+        ZStack {
+            // Right-swipe background: Favorite (leading side)
+            HStack {
+                ZStack(alignment: .leading) {
+                    Rectangle()
+                        .fill(Color.tpAccent)
+                        .clipShape(UnevenRoundedRectangle(topLeadingRadius: 18, bottomLeadingRadius: 18))
+                        .frame(width: max(0, offset))
+
+                    Image(systemName: isFavorite ? "star.fill" : "star")
+                        .foregroundStyle(.white)
+                        .font(.system(size: 18, weight: .semibold))
+                        .padding(.leading, 24)
+                        .opacity(offset > 40 ? 1 : 0)
+                        .onTapGesture {
+                            withAnimation(TPDesign.springDefault) {
+                                isFavorite.toggle()
+                                TPHaptic.selection()
+                                offset = 0
+                            }
+                        }
                 }
+                Spacer()
+            }
+
+            // Left-swipe background: Delete (trailing side)
+            HStack {
+                Spacer()
+                ZStack(alignment: .trailing) {
+                    Rectangle()
+                        .fill(Color.red)
+                        .clipShape(UnevenRoundedRectangle(bottomTrailingRadius: 18, topTrailingRadius: 18))
+                        .frame(width: max(0, -offset))
+
+                    Image(systemName: "trash")
+                        .foregroundStyle(.white)
+                        .font(.system(size: 20, weight: .semibold))
+                        .padding(.trailing, 24)
+                        .opacity(-offset > 40 ? 1 : 0)
+                        .onTapGesture {
+                            withAnimation {
+                                modelContext.delete(travel)
+                                try? modelContext.save()
+                            }
+                        }
+                }
+            }
 
             content
                 .offset(x: offset)
                 .highPriorityGesture(
                     DragGesture(minimumDistance: 20)
                         .onChanged { gesture in
-                            if offset == 0 && gesture.translation.width < 0 {
-                                offset = max(gesture.translation.width, -80)
+                            let translation = gesture.translation.width
+                            if offset == 0 {
+                                offset = max(min(translation, 80), -80)
                             } else if offset < 0 {
-                                offset = min(-80 + gesture.translation.width, 0)
+                                offset = max(min(-80 + translation, 80), -80)
+                            } else {
+                                offset = max(min(80 + translation, 80), -80)
                             }
                         }
                         .onEnded { gesture in
                             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                                if gesture.translation.width < -40 {
+                                let translation = gesture.translation.width
+                                if translation < -40 {
                                     offset = -80
-                                } else if gesture.translation.width > 30 {
+                                } else if translation > 40 {
+                                    offset = 80
+                                } else if translation > -40 && translation < 40 {
                                     offset = 0
                                 } else {
-                                    offset = offset < -40 ? -80 : 0
+                                    offset = offset < -40 ? -80 : (offset > 40 ? 80 : 0)
                                 }
                             }
                         }
                 )
+                // Long press = edit
+                .onLongPressGesture(minimumDuration: 0.5) {
+                    TPHaptic.mechanicalPress()
+                    onEdit()
+                }
         }
     }
 }

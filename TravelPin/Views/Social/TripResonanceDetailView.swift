@@ -17,7 +17,6 @@ struct TripResonanceDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     heroHeader
-                    statsBar
                     interactionBar
 
                     if let snapshot = trip.decodedSnapshot {
@@ -93,41 +92,6 @@ struct TripResonanceDetailView: View {
         case .business: return LinearGradient(colors: [TPDesign.obsidian, TPDesign.obsidian.opacity(0.7)], startPoint: .topLeading, endPoint: .bottomTrailing)
         case .other:    return LinearGradient(colors: [TPDesign.marineDeep.opacity(0.5), TPDesign.deepNavy], startPoint: .topLeading, endPoint: .bottomTrailing)
         }
-    }
-
-    // MARK: - Stats Bar
-
-    private var statsBar: some View {
-        HStack(spacing: 0) {
-            statCell(value: "\(trip.durationDays)", label: "天", icon: "calendar")
-            Divider().frame(height: 36)
-            statCell(value: "\(trip.likeCount)", label: "喜欢", icon: "heart.fill")
-            Divider().frame(height: 36)
-            statCell(value: "\(trip.commentCount)", label: "评论", icon: "text.bubble")
-        }
-        .padding(.vertical, 16)
-        .background(Color.white.opacity(0.7))
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .shadowSmall()
-        .padding(.horizontal, 24)
-        .padding(.top, 20)
-        .cinematicFadeIn(delay: 0.1)
-    }
-
-    private func statCell(value: String, label: String, icon: String) -> some View {
-        VStack(spacing: 4) {
-            HStack(spacing: 4) {
-                Image(systemName: icon)
-                    .font(.system(size: 11))
-                Text(value)
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
-            }
-            .foregroundStyle(TPDesign.obsidian)
-            Text(label)
-                .font(.system(size: 10, weight: .bold))
-                .foregroundStyle(TPDesign.textTertiary)
-        }
-        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Interaction Bar

@@ -977,6 +977,7 @@ struct TravelDetailView: View {
 struct ItineraryRow: View {
     let travel: Travel
     let itinerary: Itinerary
+    @Environment(\.modelContext) private var modelContext
     var isLast: Bool = false
     var onEdit: () -> Void
     var onAddSpot: () -> Void
@@ -1057,19 +1058,7 @@ struct ItineraryRow: View {
                 if !dailySpots.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
                         ForEach(dailySpots) { spot in
-                            Button {
-                                onEditSpot(spot)
-                            } label: {
-                                HStack(spacing: 10) {
-                                    Circle()
-                                        .fill(Color.tpAccent.opacity(0.2))
-                                        .frame(width: 6, height: 6)
-                                    Label(spot.name, systemImage: spot.type.icon)
-                                        .font(TPDesign.bodyFont(15))
-                                        .foregroundStyle(TPDesign.textSecondary)
-                                }
-                            }
-                            .buttonStyle(.plain)
+                            draggableSpotRow(spot: spot, dailySpots: dailySpots)
                         }
                     }
                     .padding(.leading, 2)
@@ -1096,9 +1085,71 @@ struct ItineraryRow: View {
         }
         .padding(.horizontal, 24)
     }
-}
 
-// MARK: - Route Tracking Section (separate view for proper @ObservedObject lifecycle)
+    // MARK: - Draggable Spot Row
+
+    @ViewBuilder
+    private func draggableSpotRow(spot: Spot, dailySpots: [Spot]) -> some View {
+        HStack(spacing: 10) {
+            // Drag handle
+            Image(systemName: "line.3.horizontal")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(.quaternary)
+                .padding(.trailing, 2)
+
+            Circle()
+                .fill(Color.tpAccent.opacity(0.2))
+                .frame(width: 6, height: 6)
+
+            Button {
+                onEditSpot(spot)
+            } label: {
+                Label(spot.name, systemImage: spot.type.icon)
+                    .font(TPDesign.bodyFont(15))
+                    .foregroundStyle(TPDesign.textSecondary)
+            }
+            .buttonStyle(.plain)
+        }
+        .draggable(spot.id.uuidString) {
+            HStack(spacing: 8) {
+                Image(systemName: spot.type.icon)
+                    .font(.system(size: 12))
+                Text(spot.name)
+                    .font(TPDesign.bodyFont(14, weight: .medium))
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Color.tpAccent.opacity(0.1))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .dropDestination(for: String.self) { items, _ in
+            guard let droppedIdString = items.first,
+                  let droppedId = UUID(uuidString: droppedIdString),
+                  let droppedSpot = dailySpots.first(where: { $0.id == droppedId }),
+                  droppedSpot.id != spot.id else { return false }
+
+            withAnimation(TPDesign.springDefault) {
+                reorderSpots(dragged: droppedSpot, target: spot, in: dailySpots)
+            }
+            TPHaptic.selection()
+            return true
+        }
+    }
+
+    private func reorderSpots(dragged: Spot, target: Spot, in spots: [Spot]) {
+        var reordered = spots
+        guard let fromIndex = reordered.firstIndex(where: { $0.id == dragged.id }),
+              let toIndex = reordered.firstIndex(where: { $0.id == target.id }) else { return }
+
+        reordered.remove(at: fromIndex)
+        reordered.insert(dragged, at: toIndex)
+
+        for (index, s) in reordered.enumerated() {
+            s.sequence = index + 1
+        }
+        try? modelContext.save()
+    }
+}
 
 struct RouteTrackingSectionContent: View {
     let travel: Travel
